@@ -1,12 +1,19 @@
 import express from "express";
-import swaggerUi from "swagger-ui-express";
-import fs from "fs";
-import path from "path";
+import { setupSwagger } from "./config/swagger.js";
+import recipesRouter from "./routes/recipes.js"
+import healthRouter from "./routes/health.js"
+import { env } from "./config/env.js";
 
 const app = express();
 app.use(express.json());
 
-app.get("/health", (_: any, res: any) => res.json({ status: "ok"}));
+app.use("/health", healthRouter);
+app.use("/recipes", recipesRouter);
 
+setupSwagger(app);
 
+app.listen(env.port, () => {
+    console.log(`API running at http://localhost:${env.port}`);
+    console.log(`Docs at http://localhost:${env.port}/docs`);
+});
 
