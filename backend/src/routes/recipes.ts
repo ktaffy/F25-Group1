@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as spoon from "../services/spoonacular.js";
+import { getRandomRecipes, searchRecipes, getRecipe, getRecipeSteps } from "../services/recipeService.js";
 
 const router = Router();
 
@@ -23,13 +23,13 @@ const router = Router();
  *       200:
  *         description: A list of random recipes
  */
-router.get("/random", async (req, res) => {
+router.get("/random", async (req, res, next) => {
   try {
     const { number, tags } = req.query;
-    const recipes = await spoon.randomRecipes(Number(number) || 5, tags as string);
+    const recipes = await getRandomRecipes(Number(number) || 5, tags as string);
     res.json(recipes);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Failed to fetch random recipes" });
+  } catch (err) {
+    next(err);
   }
 });
 
@@ -73,12 +73,12 @@ router.get("/random", async (req, res) => {
  *       200:
  *         description: Search results
  */
-router.get("/search", async (req, res) => {
+router.get("/search", async (req, res, next) => {
   try {
-    const results = await spoon.searchRecipes(req.query);
+    const results = await searchRecipes(req.query);
     res.json(results);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Search failed" });
+  } catch (err) {
+    next(err);
   }
 });
 
@@ -98,12 +98,16 @@ router.get("/search", async (req, res) => {
  *       200:
  *         description: Full recipe details
  */
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req, res, next) => {
   try {
-    const recipe = await spoon.getRecipe(Number(req.params.id));
+    const recipe = await getRecipe(Number(req.params.id));
+    if (!recipe) {
+      res.status(404).json({ error: "Recipe not found or invalid" });
+      return;
+    }
     res.json(recipe);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Failed to fetch recipe details" });
+  } catch (err) {
+    next(err);
   }
 });
 
@@ -123,12 +127,12 @@ router.get("/:id", async (req, res) => {
  *       200:
  *         description: Recipe steps
  */
-router.get("/:id/steps", async (req, res) => {
+router.get("/:id/steps", async (req, res, next) => {
   try {
-    const steps = await spoon.getSteps(Number(req.params.id));
+    const steps = await getRecipeSteps(Number(req.params.id));
     res.json(steps);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Failed to fetch recipe steps" });
+  } catch (err) {
+    next(err);
   }
 });
 
