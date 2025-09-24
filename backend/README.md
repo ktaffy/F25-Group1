@@ -34,7 +34,7 @@ npm run lint
 ```
 
 ## API Documentation
-# Swagger UI is available after starting the server:
+### Swagger UI is available after starting the server:
 ```bash
 http://localhost:3000/api-docs
 ```
