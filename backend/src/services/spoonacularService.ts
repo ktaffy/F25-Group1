@@ -1,5 +1,6 @@
 import axios from "axios";
 import { env } from "../config/env.js";
+import type { Recipe } from "../types/recipe.js";
 
 const BASE = "https://api.spoonacular.com";
 
@@ -51,7 +52,7 @@ export async function fetchSearchRecipes(params: any) {
  * @param id - unique id
  * @returns raw recipe
  */
-export async function fetchRecipeById(id: number) {
+export async function fetchRecipeById(id: number): Promise<Recipe> {
   return await request(`/recipes/${id}/information`, { includeNutrition: false });
 }
 
