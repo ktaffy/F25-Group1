@@ -1,69 +1,64 @@
-import { fetchRandomRecipes, fetchSearchRecipes, fetchRecipeById, fetchSteps } from "./spoonacularService.js";
-import { formatRecipe } from "./recipeFormatter.js";
-import type { Recipe } from "../types/recipe.js";
+import { fetchRandomRecipes, fetchSearchRecipes, fetchRecipeById, fetchSteps } from "../clients/spoonacularClient.js";
+import { formatRecipe } from "../utils/recipeFormatter.js";
+import type { Recipe } from "../types/recipeTypes.js";
 
 /**
- * Validate that a formatted recipe has enough info to be usable.
- * @param recipe - formatted recipe
- * @returns true if valid, false otherwise
+ * Internal helper to validate a recipe is usable. 
+ * @param recipe of type recipe
+ * @returns boolean t/f
  */
 function validateRecipe(recipe: Recipe): boolean {
-    return (
-        !!recipe.id &&
-        !!recipe.title &&
-        recipe.ingredients.length > 0 &&
-        recipe.instructions.length > 0
-    );
+  return (
+    !!recipe.id &&
+    !!recipe.title &&
+    recipe.ingredients.length > 0 &&
+    recipe.instructions.length > 0
+  );
 }
 
 /**
- * Get random recipes (formatted + validated).
- * @param number - how many recipes
- * @param tags - filters
- * @returns formatted recipes
+ * Gets a specific number of random recipes, optionally filtered by tags.
+ * @param number 
+ * @param tags 
+ * @returns mapped, formatted, and validated recipes
  */
 export async function getRandomRecipes(number = 5, tags?: string): Promise<Recipe[]> {
-    const data = await fetchRandomRecipes(number, tags);
-    return data.recipes.map(formatRecipe).filter(validateRecipe);
+  const data = await fetchRandomRecipes(number, tags);
+  return data.recipes.map(formatRecipe).filter(validateRecipe);
 }
 
 /**
- * Search for recipes (formatted + validated).
- * @param params - search filters
- * @returns { totalResults, items }
+ * Searches for recipes with given number and filters. 
+ * @param params 
+ * @returns Promise<{ totalResults: number; items: Recipe[] }>
  */
 export async function searchRecipes(params: any): Promise<{ totalResults: number; items: Recipe[] }> {
-    const data = await fetchSearchRecipes(params);
+  const data = await fetchSearchRecipes(params);
+  const items = data.results.map(formatRecipe).filter(validateRecipe);
 
-    console.log(data.results);
-    const items = data.results
-        .map(formatRecipe)
-        .filter(validateRecipe);
-
-    console.log(items);
-    return {
-        totalResults: data.totalResults ?? items.length,
-        items,
-    };
+  return {
+    totalResults: data.totalResults ?? items.length,
+    items,
+  };
 }
 
 /**
- * Get a single recipe by ID (formatted + validated).
- * @param id - recipe id
- * @returns formatted recipe or null
+ * Get a single formatted and validated recipe by ID.
+ * @param id 
+ * @returns recipe object
  */
 export async function getRecipe(id: number): Promise<Recipe | null> {
-    const raw = await fetchRecipeById(id);
-    const formatted = formatRecipe(raw);
-    return validateRecipe(formatted) ? formatted : null;
+  const raw = await fetchRecipeById(id);
+  const formatted = formatRecipe(raw);
+  return validateRecipe(formatted) ? formatted : null;
 }
 
 /**
- * Get steps for a recipe by ID.
- * @param id - recipe id
- * @returns step strings
+ * Gets an array of steps for a recipe by ID.
+ * @param id 
+ * @returns steps array
  */
 export async function getRecipeSteps(id: number): Promise<string[]> {
-    const data = await fetchSteps(id);
-    return (data[0]?.steps || []).map((step: any) => step.step);
+  const data = await fetchSteps(id);
+  return (data[0]?.steps || []).map((step: any) => step.step);
 }

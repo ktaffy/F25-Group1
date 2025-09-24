@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createScheduleFromIds } from "../services/scheduleService.js";
+import * as scheduleController from "../controllers/scheduleController.js";
 
 const router = Router();
 
@@ -34,19 +34,6 @@ const router = Router();
  *       500:
  *         description: Internal server error
  */
-router.post("/", async (req, res) => {
-    try {
-        const { recipeIds } = req.body;
-        if (!Array.isArray(recipeIds) || recipeIds.length === 0) {
-            return res.status(400).json({ error: "recipeIds[] required" });
-        }
-
-        const result = await createScheduleFromIds(recipeIds);
-        res.json(result);
-    } catch (err: any) {
-        console.error("[schedule] error:", err);
-        res.status(500).json({ error: err.message || "schedule error" });
-    }
-});
+router.post("/", scheduleController.createSchedule);
 
 export default router;

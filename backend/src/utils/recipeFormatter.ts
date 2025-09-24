@@ -1,4 +1,4 @@
-import type { Recipe, Ingredient, InstructionStep } from "../types/recipe.js";
+import type { Recipe, Ingredient, InstructionStep } from "../types/recipeTypes.js";
 
 /**
  * Converts a raw Spoonacular recipe object into a simplified Recipe.

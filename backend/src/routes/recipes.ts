@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getRandomRecipes, searchRecipes, getRecipe, getRecipeSteps } from "../services/recipeService.js";
+import * as recipeController from "../controllers/recipeController.js";
 
 const router = Router();
 
@@ -13,25 +13,20 @@ const router = Router();
  *     parameters:
  *       - in: query
  *         name: number
- *         schema: { type: integer, default: 5 }
+ *         schema:
+ *           type: integer
+ *           default: 5
  *         description: How many recipes to fetch
  *       - in: query
  *         name: tags
- *         schema: { type: string }
+ *         schema:
+ *           type: string
  *         description: Comma-separated tags (diet, cuisine, etc.)
  *     responses:
  *       200:
  *         description: A list of random recipes
  */
-router.get("/random", async (req, res, next) => {
-  try {
-    const { number, tags } = req.query;
-    const recipes = await getRandomRecipes(Number(number) || 5, tags as string);
-    res.json(recipes);
-  } catch (err) {
-    next(err);
-  }
-});
+router.get("/random", recipeController.getRandomRecipes);
 
 /**
  * @openapi
@@ -68,19 +63,14 @@ router.get("/random", async (req, res, next) => {
  *         schema: { type: string }
  *       - in: query
  *         name: number
- *         schema: { type: integer, default: 10 }
+ *         schema:
+ *           type: integer
+ *           default: 10
  *     responses:
  *       200:
  *         description: Search results
  */
-router.get("/search", async (req, res, next) => {
-  try {
-    const results = await searchRecipes(req.query);
-    res.json(results);
-  } catch (err) {
-    next(err);
-  }
-});
+router.get("/search", recipeController.searchRecipes);
 
 /**
  * @openapi
@@ -97,19 +87,10 @@ router.get("/search", async (req, res, next) => {
  *     responses:
  *       200:
  *         description: Full recipe details
+ *       404:
+ *         description: Recipe not found or invalid
  */
-router.get("/:id", async (req, res, next) => {
-  try {
-    const recipe = await getRecipe(Number(req.params.id));
-    if (!recipe) {
-      res.status(404).json({ error: "Recipe not found or invalid" });
-      return;
-    }
-    res.json(recipe);
-  } catch (err) {
-    next(err);
-  }
-});
+router.get("/:id", recipeController.getRecipe);
 
 /**
  * @openapi
@@ -127,13 +108,6 @@ router.get("/:id", async (req, res, next) => {
  *       200:
  *         description: Recipe steps
  */
-router.get("/:id/steps", async (req, res, next) => {
-  try {
-    const steps = await getRecipeSteps(Number(req.params.id));
-    res.json(steps);
-  } catch (err) {
-    next(err);
-  }
-});
+router.get("/:id/steps", recipeController.getRecipeSteps);
 
 export default router;

@@ -1,6 +1,6 @@
 import axios from "axios";
 import { env } from "../config/env.js";
-import type { Recipe } from "../types/recipe.js";
+import type { Recipe } from "../types/recipeTypes.js";
 
 const BASE = "https://api.spoonacular.com";
 

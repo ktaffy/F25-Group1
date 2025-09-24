@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { ScheduleResult } from "../types/schedule.js";
+import type { ScheduleResult } from "../types/scheduleTypes.js";
 
 const OPENAI_API = "https://api.openai.com/v1/chat/completions";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
