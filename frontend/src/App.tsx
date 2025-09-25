@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import type { Session } from '@supabase/supabase-js'
+import LandingPage from './pages/LandingPage'
+import CartPage from './pages/CartPage'
+import CookingPage from './pages/CookingPage'
 import './App.css'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -12,6 +15,30 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
+type Page = 'landing' | 'cart' | 'cooking'
+
+interface Recipe {
+  id: number
+  title: string
+  image: string
+  readyInMinutes: number
+  servings?: number
+  summary?: string
+}
+
+interface Schedule {
+  items: Array<{
+    recipeId: string
+    recipeName: string
+    stepIndex: number
+    text: string
+    attention: 'foreground' | 'background'
+    startSec: number
+    endSec: number
+  }>
+  totalDurationSec: number
+}
+
 function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [email, setEmail] = useState('')
@@ -19,6 +46,10 @@ function App() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+
+  const [currentPage, setCurrentPage] = useState<Page>('landing')
+  const [cart, setCart] = useState<Recipe[]>([])
+  const [cookingSchedule, setCookingSchedule] = useState<Schedule | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -61,31 +92,60 @@ function App() {
     }
   }
 
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'landing':
+        return <LandingPage cart={cart} setCart={setCart} />
+      case 'cart':
+        return (
+          <CartPage
+            cart={cart}
+            setCart={setCart}
+            setCurrentPage={setCurrentPage}
+            setCookingSchedule={setCookingSchedule}
+          />
+        )
+      case 'cooking':
+        return (
+          <CookingPage
+            schedule={cookingSchedule}
+            setCurrentPage={setCurrentPage}
+          />
+        )
+      default:
+        return <LandingPage cart={cart} setCart={setCart} />
+    }
+  }
+
   if (session) {
     return (
-      <div className="auth-container">
-        <div className="auth-card">
-          <div className="success-card">
-            <div className="success-icon">
-              <svg width="32" height="32" fill="#22c55e" viewBox="0 0 24 24">
-                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-              </svg>
-            </div>
-            <h2 className="auth-title">Welcome back!</h2>
-            <p className="auth-subtitle">You're successfully signed in</p>
+      <div className="app">
+        <nav className="app-nav">
+          <div className="nav-left">
+            <button
+              onClick={() => setCurrentPage('landing')}
+              className={currentPage === 'landing' ? 'nav-button active' : 'nav-button'}
+            >
+              Recipes
+            </button>
+            <button
+              onClick={() => setCurrentPage('cart')}
+              className={currentPage === 'cart' ? 'nav-button active' : 'nav-button'}
+            >
+              Cart ({cart.length})
+            </button>
           </div>
-
-          <div className="user-info">
-            <strong>Email:</strong> {session.user.email}
+          <div className="nav-right">
+            <span className="user-email">{session.user.email}</span>
+            <button onClick={handleSignOut} className="nav-button sign-out">
+              Sign Out
+            </button>
           </div>
+        </nav>
 
-          <button
-            onClick={handleSignOut}
-            className="auth-button sign-out-button"
-          >
-            Sign Out
-          </button>
-        </div>
+        <main className="app-main">
+          {renderPage()}
+        </main>
       </div>
     )
   }
