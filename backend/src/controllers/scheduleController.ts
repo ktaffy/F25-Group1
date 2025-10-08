@@ -1,11 +1,12 @@
 import type { Request, Response, NextFunction } from "express";
 import * as scheduleService from "../services/scheduleService.js";
+import { badRequest } from "../utils/respond.js";
 
 export async function createSchedule(req: Request, res: Response, next: NextFunction) {
   try {
     const { recipeIds } = req.body;
     if (!Array.isArray(recipeIds) || recipeIds.length === 0) {
-      return res.status(400).json({ error: "recipeIds[] required" });
+      return badRequest(res, "recipeIds[] required");
     }
 
     const result = await scheduleService.createScheduleFromIds(recipeIds);

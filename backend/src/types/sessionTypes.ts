@@ -8,7 +8,7 @@ export interface Session {
     // all times in ms
     createdAt: number;
     startedAt?: number;
-    pausedAt?: number;
+    pausedAt?: number | undefined;
     totalPausedMs: number;
     status: SessionStatus;
 }

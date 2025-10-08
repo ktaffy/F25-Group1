@@ -44,6 +44,15 @@ export function updateSession(id: string, mut: (s: Session) => void): Session | 
 }
 
 /**
+ * Delete an existing session
+ * @param id - session id
+ * @returns t/f for if successfully deleted
+ */
+export function deleteSession(id: string): boolean {
+    return sessions.delete(id);
+}
+
+/**
  * Ensure that items are ordered and normalized.
  * @param schedule - schedule to sanitize
  * @returns schedule items and total duration

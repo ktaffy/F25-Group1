@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import * as recipeService from "../services/recipeService.js";
+import { notFound } from "../utils/respond.js";
 
 export async function getRandomRecipes(req: Request, res: Response, next: NextFunction) {
   try {
@@ -24,8 +25,7 @@ export async function getRecipe(req: Request, res: Response, next: NextFunction)
   try {
     const recipe = await recipeService.getRecipe(Number(req.params.id));
     if (!recipe) {
-      res.status(404).json({ error: "Recipe not found or invalid" });
-      return;
+      return notFound(res, "Recipe not found or invalid");
     }
     res.json(recipe);
   } catch (err) {
