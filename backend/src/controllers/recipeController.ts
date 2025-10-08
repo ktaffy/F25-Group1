@@ -4,8 +4,8 @@ import { notFound } from "../utils/respond.js";
 
 export async function getRandomRecipes(req: Request, res: Response, next: NextFunction) {
   try {
-    const { number, tags } = req.query;
-    const recipes = await recipeService.getRandomRecipes(Number(number) || 5, tags as string);
+    const { number } = req.query;
+    const recipes = await recipeService.getRandomRecipes(Number(number) || 5);
     res.json(recipes);
   } catch (err) {
     next(err);
@@ -14,7 +14,11 @@ export async function getRandomRecipes(req: Request, res: Response, next: NextFu
 
 export async function searchRecipes(req: Request, res: Response, next: NextFunction) {
   try {
-    const results = await recipeService.searchRecipes(req.query);
+    const { query, limit } = req.query;
+    const results = await recipeService.searchRecipes(
+      query as string || '',
+      Number(limit) || 20
+    );
     res.json(results);
   } catch (err) {
     next(err);
@@ -23,7 +27,7 @@ export async function searchRecipes(req: Request, res: Response, next: NextFunct
 
 export async function getRecipe(req: Request, res: Response, next: NextFunction) {
   try {
-    const recipe = await recipeService.getRecipe(Number(req.params.id));
+    const recipe = await recipeService.getRecipe(req.params.id || '');
     if (!recipe) {
       return notFound(res, "Recipe not found or invalid");
     }
@@ -35,7 +39,7 @@ export async function getRecipe(req: Request, res: Response, next: NextFunction)
 
 export async function getRecipeSteps(req: Request, res: Response, next: NextFunction) {
   try {
-    const steps = await recipeService.getRecipeSteps(Number(req.params.id));
+    const steps = await recipeService.getRecipeSteps(req.params.id || '');
     res.json(steps);
   } catch (err) {
     next(err);

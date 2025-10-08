@@ -1,6 +1,6 @@
-import { fetchRandomRecipes, fetchSearchRecipes, fetchRecipeById, fetchSteps } from "../clients/spoonacularClient.js";
+import { fetchRandomRecipes, fetchSearchRecipes, fetchRecipeById } from "../clients/supabaseClient.js";
 import { formatRecipe } from "../utils/recipeFormatter.js";
-import type { Recipe } from "../types/recipeTypes.js";
+import type { Recipe, InstructionStep } from "../types/recipeTypes.js";
 
 /**
  * Internal helper to validate a recipe is usable. 
@@ -22,9 +22,17 @@ function validateRecipe(recipe: Recipe): boolean {
  * @param tags 
  * @returns mapped, formatted, and validated recipes
  */
-export async function getRandomRecipes(number = 5, tags?: string): Promise<Recipe[]> {
-  const data = await fetchRandomRecipes(number, tags);
-  return data.recipes.map(formatRecipe).filter(validateRecipe);
+export async function getRandomRecipes(number = 5): Promise<Recipe[]> {
+  const data = await fetchRandomRecipes(number);
+  console.log('Raw data from Supabase:', data);
+
+  const formatted = data.map(formatRecipe);
+  console.log('After formatting:', formatted);
+
+  const validated = formatted.filter(validateRecipe);
+  console.log('After validation:', validated);
+
+  return validated;
 }
 
 /**
@@ -32,12 +40,12 @@ export async function getRandomRecipes(number = 5, tags?: string): Promise<Recip
  * @param params 
  * @returns Promise<{ totalResults: number; items: Recipe[] }>
  */
-export async function searchRecipes(params: any): Promise<{ totalResults: number; items: Recipe[] }> {
-  const data = await fetchSearchRecipes(params);
-  const items = data.results.map(formatRecipe).filter(validateRecipe);
+export async function searchRecipes(query: string, limit?: number): Promise<{ totalResults: number; items: Recipe[] }> {
+  const data = await fetchSearchRecipes(query, limit);
+  const items = data.map(formatRecipe).filter(validateRecipe);
 
   return {
-    totalResults: data.totalResults ?? items.length,
+    totalResults: items.length,
     items,
   };
 }
@@ -47,7 +55,7 @@ export async function searchRecipes(params: any): Promise<{ totalResults: number
  * @param id 
  * @returns recipe object
  */
-export async function getRecipe(id: number): Promise<Recipe | null> {
+export async function getRecipe(id: string): Promise<Recipe | null> {
   const raw = await fetchRecipeById(id);
   const formatted = formatRecipe(raw);
   return validateRecipe(formatted) ? formatted : null;
@@ -58,7 +66,15 @@ export async function getRecipe(id: number): Promise<Recipe | null> {
  * @param id 
  * @returns steps array
  */
-export async function getRecipeSteps(id: number): Promise<string[]> {
-  const data = await fetchSteps(id);
-  return (data[0]?.steps || []).map((step: any) => step.step);
+export async function getRecipeSteps(id: string): Promise<string[]> {
+  const recipe = await fetchRecipeById(id);
+
+  if (Array.isArray(recipe.instructions)) {
+    return recipe.instructions.map((step: InstructionStep) => step.step);
+  }
+
+  return (recipe.instructions as unknown as string)
+    .split(/\n/)
+    .map((step: string) => step.trim())
+    .filter((step: string) => step.length > 0);
 }
