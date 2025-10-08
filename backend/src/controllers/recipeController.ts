@@ -45,3 +45,111 @@ export async function getRecipeSteps(req: Request, res: Response, next: NextFunc
     next(err);
   }
 }
+
+export async function getUserFavorites(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+    const favorites = await recipeService.getUserFavorites(userId as string);
+    res.json(favorites)
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function addFavorite(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { userId } = req.body;
+    const { recipeId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    await recipeService.addFavorite(userId, recipeId as string);
+    res.json({ success: true, message: 'Recipe added to favorites' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function removeFavorite(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { userId } = req.body;
+    const { recipeId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    await recipeService.removeFavorite(userId, recipeId as string);
+    res.json({ success: true, message: 'Recipe removed from favorites' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function checkFavorited(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { userId } = req.query;
+    const { recipeId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    const isFavorited = await recipeService.isFavorited(userId as string, recipeId as string);
+    res.json({ isFavorited });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function createUserRecipe(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { userId, ...recipeData } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    const recipe = await recipeService.createUserRecipe(userId, recipeData);
+    res.status(201).json(recipe);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateUserRecipe(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { userId, ...updates } = req.body;
+    const { recipeId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    const recipe = await recipeService.updateUserRecipe(userId, recipeId as string, updates);
+    res.json(recipe);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteUserRecipe(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { userId } = req.body;
+    const { recipeId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    await recipeService.deleteUserRecipe(userId, recipeId as string);
+    res.json({ success: true, message: 'Recipe deleted' });
+  } catch (err) {
+    next(err);
+  }
+}
