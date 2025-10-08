@@ -44,15 +44,45 @@ export function skipForegroundNow(session: Session, nowMs = Date.now()): { ok: b
     const elapsedSec = computeElapsedSec(session, nowMs);
     const { foreground } = activeItemsAt(session, elapsedSec);
 
-    let pivot: TimelineItem | null = foreground;
-    if (!pivot) {
-        pivot = nextForegroundAtOrAfter(session, elapsedSec);
-    }
-    if (!pivot) {
-        return { ok: false, reason: "No foreground step to skip."};
+    if (foreground) {
+        // We are currently inside a foreground step -> truncate it and pull future forward
+        const remaining = Math.max(0, foreground.endSec - elapsedSec);
+        if (remaining === 0) {
+            // Edge: we're exactly at the end boundary; just look for the next foreground to pull to now
+            const nextFg = nextForegroundAtOrAfter(session, elapsedSec);
+            if (!nextFg) return { ok: false, reason: "No foreground step to skip." };
+            const shift = elapsedSec - nextFg.startSec;
+            shiftFutureItems(session, nextFg.startSec, shift);
+            return { ok: true };
+        }
+
+        // 1) Truncate the active foreground so it ends now
+        session.schedule.items = session.schedule.items.map(it => {
+            if (
+                it.recipeId === foreground.recipeId &&
+                it.stepIndex === foreground.stepIndex &&
+                it.startSec === foreground.startSec &&
+                it.endSec === foreground.endSec &&
+                it.attention === "foreground"
+            ) {
+                // allow zero-length end (end == elapsedSec). Do NOT force +1 here.
+                return { ...it, endSec: elapsedSec };
+            }
+            return it;
+        }).sort((a, b) => a.startSec - b.startSec || a.endSec - b.endSec);
+
+        // 2) Pull all items that have NOT started yet to fill the gap
+        // cutoff is 'elapsedSec' so anything already started (startSec < elapsedSec) is untouched
+        shiftFutureItems(session, elapsedSec, -remaining);
+
+        return { ok: true };
     }
 
-    const shift = elapsedSec - pivot.startSec;
-    shiftFutureItems(session, pivot.startSec, shift);
+    // No active foreground: pull the next foreground to now (your original behavior)
+    const next = nextForegroundAtOrAfter(session, elapsedSec);
+    if (!next) return { ok: false, reason: "No foreground step to skip." };
+
+    const shift = elapsedSec - next.startSec; // usually negative
+    shiftFutureItems(session, next.startSec, shift);
     return { ok: true };
 }

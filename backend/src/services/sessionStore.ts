@@ -125,7 +125,9 @@ export function activeItemsAt(session: Session, elapsedSec: number): {
  * @returns foreground timeline item
  */
 export function nextForegroundAtOrAfter(session: Session, elapsedSec: number): TimelineItem | null {
-    const next = session.schedule.items.find(item => item.attention === "foreground" && item.startSec >= elapsedSec);
+    const next = session.schedule.items.find(
+        it => it.attention === "foreground" && it.startSec > elapsedSec
+    );
     return next ?? null;
 }
 
