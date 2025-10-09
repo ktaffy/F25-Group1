@@ -1,7 +1,7 @@
-const API_BASE = 'http://localhost:4000'
+const API_BASE = '/api'
 
 interface Recipe {
-    id: number
+    id: string
     title: string
     image: string
     readyInMinutes: number
@@ -24,9 +24,8 @@ interface Schedule {
     totalDurationSec: number
 }
 
-export const fetchRandomRecipes = async (number: number = 5, tags: string = ''): Promise<Recipe[]> => {
+export const fetchRandomRecipes = async (number: number = 5): Promise<Recipe[]> => {
     const params = new URLSearchParams({ number: number.toString() })
-    if (tags) params.append('tags', tags)
 
     try {
         const response = await fetch(`${API_BASE}/recipes/random?${params}`)
@@ -51,17 +50,17 @@ export const fetchRandomRecipes = async (number: number = 5, tags: string = ''):
     }
 }
 
-export const fetchRecipeDetails = async (id: number): Promise<Recipe> => {
+export const fetchRecipeDetails = async (id: string): Promise<Recipe> => {
     const response = await fetch(`${API_BASE}/recipes/${id}`)
     return response.json()
 }
 
-export const fetchRecipeSteps = async (id: number) => {
+export const fetchRecipeSteps = async (id: string) => {
     const response = await fetch(`${API_BASE}/recipes/${id}/steps`)
     return response.json()
 }
 
-export const generateSchedule = async (recipeIds: number[]): Promise<Schedule> => {
+export const generateSchedule = async (recipeIds: string[]): Promise<Schedule> => {
     const response = await fetch(`${API_BASE}/schedule`, {
         method: 'POST',
         headers: {

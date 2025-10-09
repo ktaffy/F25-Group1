@@ -6,4 +6,6 @@ export const env = {
   port: process.env.PORT || 4000,
   spoonKey: process.env.SPOONACULAR_API_KEY || "",
   apiBaseUrl: process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 3001}`,
+  supabaseURl: process.env.SUPABASE_URL || "",
+  supabaseKey: process.env.SUPABASE_KEY || "",
 };
