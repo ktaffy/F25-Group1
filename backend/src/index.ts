@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";  // ADD THIS LINE
 import { setupSwagger } from "./config/swagger.js";
 import recipesRouter from "./routes/recipes.js"
 import healthRouter from "./routes/health.js"
@@ -7,6 +8,7 @@ import sessionsRouter from "./routes/sessions.js"
 import { env } from "./config/env.js";
 
 const app = express();
+app.use(cors());  // ADD THIS LINE - allows all origins
 app.use(express.json());
 
 app.use("/health", healthRouter);
@@ -20,4 +22,3 @@ app.listen(env.port, () => {
     console.log(`API running at http://localhost:${env.port}`);
     console.log(`Docs at http://localhost:${env.port}/docs`);
 });
-

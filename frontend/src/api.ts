@@ -1,4 +1,4 @@
-const API_BASE = '/api'
+const API_BASE = 'http://localhost:4000'
 
 interface Recipe {
     id: number
@@ -34,8 +34,17 @@ export const fetchRandomRecipes = async (number: number = 5, tags: string = ''):
             throw new Error(`HTTP error! status: ${response.status}`)
         }
         const data = await response.json()
-        console.log('API Response:', data)
-        return data
+        console.log('Random recipes response:', data)
+        
+        // Handle different response structures
+        if (Array.isArray(data)) {
+            return data
+        } else if (data.recipes && Array.isArray(data.recipes)) {
+            return data.recipes
+        } else {
+            console.error('Unexpected response format:', data)
+            return []
+        }
     } catch (error) {
         console.error('Error fetching recipes:', error)
         return []
@@ -64,7 +73,32 @@ export const generateSchedule = async (recipeIds: number[]): Promise<Schedule> =
 }
 
 export const searchRecipes = async (filters: Record<string, string> = {}): Promise<Recipe[]> => {
-    const params = new URLSearchParams(filters)
-    const response = await fetch(`${API_BASE}/recipes/search?${params}`)
-    return response.json()
+    try {
+        const params = new URLSearchParams(filters)
+        const response = await fetch(`${API_BASE}/recipes/search?${params}`)
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        console.log('Search response:', data)
+        
+        // Handle different response structures
+        if (Array.isArray(data)) {
+            return data
+        } else if (data.items && Array.isArray(data.items)) {
+            return data.items  // THIS IS THE FIX!
+        } else if (data.results && Array.isArray(data.results)) {
+            return data.results
+        } else if (data.recipes && Array.isArray(data.recipes)) {
+            return data.recipes
+        } else {
+            console.error('Unexpected search response format:', data)
+            return []
+        }
+    } catch (error) {
+        console.error('Error searching recipes:', error)
+        return []
+    }
 }

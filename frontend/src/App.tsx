@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import type { Session } from '@supabase/supabase-js'
 import LandingPage from './pages/LandingPage'
 import CartPage from './pages/CartPage'
+import FavoritesPage from './pages/FavoritesPage'
 import CookingPage from './pages/CookingPage'
 import './App.css'
 
@@ -15,7 +16,7 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
-type Page = 'landing' | 'cart' | 'cooking'
+type Page = 'landing' | 'favorites' | 'cart' | 'cooking'
 
 interface Recipe {
   id: number
@@ -49,6 +50,7 @@ function App() {
 
   const [currentPage, setCurrentPage] = useState<Page>('landing')
   const [cart, setCart] = useState<Recipe[]>([])
+  const [favorites, setFavorites] = useState<Recipe[]>([])
   const [cookingSchedule, setCookingSchedule] = useState<Schedule | null>(null)
 
   useEffect(() => {
@@ -95,7 +97,17 @@ function App() {
   const renderPage = () => {
     switch (currentPage) {
       case 'landing':
-        return <LandingPage cart={cart} setCart={setCart} />
+        return <LandingPage cart={cart} setCart={setCart} favorites={favorites} setFavorites={setFavorites} />
+      case 'favorites':
+        return (
+          <FavoritesPage
+            favorites={favorites}
+            setFavorites={setFavorites}
+            cart={cart}
+            setCart={setCart}
+            setCurrentPage={setCurrentPage}
+          />
+        )
       case 'cart':
         return (
           <CartPage
@@ -113,7 +125,7 @@ function App() {
           />
         )
       default:
-        return <LandingPage cart={cart} setCart={setCart} />
+        return <LandingPage cart={cart} setCart={setCart} favorites={favorites} setFavorites={setFavorites} />
     }
   }
 
@@ -127,6 +139,12 @@ function App() {
               className={currentPage === 'landing' ? 'nav-button active' : 'nav-button'}
             >
               Recipes
+            </button>
+            <button
+              onClick={() => setCurrentPage('favorites')}
+              className={currentPage === 'favorites' ? 'nav-button active' : 'nav-button'}
+            >
+              ❤️ Favorites ({favorites.length})
             </button>
             <button
               onClick={() => setCurrentPage('cart')}
