@@ -39,7 +39,12 @@ function LandingPage({ cart, setCart, favorites, setFavorites }: LandingPageProp
         setLoading(true)
         try {
             const data = await fetchRandomRecipes(resultsPerPage)
-            setRecipes(data)
+            // Convert string IDs to numbers
+            const recipesWithNumericIds = data.map(recipe => ({
+                ...recipe,
+                id: typeof recipe.id === 'string' ? parseInt(recipe.id) : recipe.id
+            }))
+            setRecipes(recipesWithNumericIds)
             setSearchQuery('')
             setCuisine('')
             setDiet('')
@@ -69,7 +74,12 @@ function LandingPage({ cart, setCart, favorites, setFavorites }: LandingPageProp
             if (mealType) filters.type = mealType
             
             const data = await searchRecipes(filters)
-            setRecipes(data)
+            // Convert string IDs to numbers
+            const recipesWithNumericIds = data.map(recipe => ({
+                ...recipe,
+                id: typeof recipe.id === 'string' ? parseInt(recipe.id) : recipe.id
+            }))
+            setRecipes(recipesWithNumericIds)
         } catch (error) {
             console.error('Error searching recipes:', error)
         } finally {
@@ -85,8 +95,13 @@ function LandingPage({ cart, setCart, favorites, setFavorites }: LandingPageProp
 
     const previewRecipe = async (recipe: Recipe) => {
         try {
-            const fullRecipe = await fetchRecipeDetails(recipe.id)
-            setSelectedRecipe(fullRecipe)
+            // Convert number ID to string for API call
+            const fullRecipe = await fetchRecipeDetails(String(recipe.id))
+            // Convert string ID back to number for state
+            setSelectedRecipe({
+                ...fullRecipe,
+                id: typeof fullRecipe.id === 'string' ? parseInt(fullRecipe.id) : fullRecipe.id
+            })
         } catch (error) {
             console.error('Error fetching recipe details:', error)
         }
