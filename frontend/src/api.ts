@@ -101,3 +101,78 @@ export const searchRecipes = async (filters: Record<string, string> = {}): Promi
         return []
     }
 }
+
+export const createRecipe = async (recipeData: {
+    userId: string
+    title: string
+    image: string
+    servings: number
+    ready_in_minutes: number
+    summary: string
+    ingredients: Array<{
+        name: string
+        amount: number
+        unit: string
+        original: string
+    }>
+    instructions: string
+    dish_types: string[]
+}): Promise<Recipe> => {
+    const response = await fetch(`${API_BASE}/recipes`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(recipeData)
+    })
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const newRecipe = await response.json()
+
+    try {
+        await fetch(`${API_BASE}/recipes/favorites/${newRecipe.id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId: recipeData.userId })
+        })
+    } catch (error) {
+        console.error('Error auto-favoriting recipe:', error)
+    }
+
+    return newRecipe
+}
+
+export const fetchUserRecipes = async (userId: string): Promise<Recipe[]> => {
+    try {
+        const response = await fetch(`${API_BASE}/recipes/user?userId=${userId}`)
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json()
+        return Array.isArray(data) ? data : []
+    } catch (error) {
+        console.error('Error fetching user recipes:', error)
+        return []
+    }
+}
+
+export const deleteRecipe = async (userId: string, recipeId: string): Promise<void> => {
+    const response = await fetch(`${API_BASE}/recipes/${recipeId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId })
+    })
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+    }
+}

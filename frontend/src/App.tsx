@@ -5,6 +5,7 @@ import LandingPage from './pages/LandingPage'
 import CartPage from './pages/CartPage'
 import FavoritesPage from './pages/FavoritesPage'
 import CookingPage from './pages/CookingPage'
+import CreateRecipePage from './pages/CreateRecipePage'
 import './App.css'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -16,7 +17,7 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
-type Page = 'landing' | 'favorites' | 'cart' | 'cooking'
+type Page = 'landing' | 'favorites' | 'cart' | 'cooking' | 'createRecipe'
 
 interface Recipe {
   id: number
@@ -124,6 +125,13 @@ function App() {
             setCurrentPage={setCurrentPage}
           />
         )
+      case 'createRecipe':
+        return (
+          <CreateRecipePage
+            setCurrentPage={setCurrentPage}
+            userId={session?.user.id || ''}
+          />
+        )
       default:
         return <LandingPage cart={cart} setCart={setCart} favorites={favorites} setFavorites={setFavorites} />
     }
@@ -145,6 +153,12 @@ function App() {
               className={currentPage === 'favorites' ? 'nav-button active' : 'nav-button'}
             >
               ❤️ Favorites ({favorites.length})
+            </button>
+            <button
+              onClick={() => setCurrentPage('createRecipe')}
+              className={currentPage === 'createRecipe' ? 'nav-button active' : 'nav-button'}
+            >
+              ➕ Create Recipe
             </button>
             <button
               onClick={() => setCurrentPage('cart')}

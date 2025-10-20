@@ -22,9 +22,7 @@ body {
   width: 100vw;
   background: linear-gradient(135deg, #f0f8ff 0%, #e6f2ff 100%);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  position: fixed;
-  top: 0;
-  left: 0;
+  position: relative;
   overflow-x: hidden;
 }
 
