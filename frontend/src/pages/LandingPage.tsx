@@ -215,9 +215,11 @@ function LandingPage({ cart, setCart, favorites, setFavorites }: LandingPageProp
                                 fontSize: '0.875rem',
                                 border: '1px solid #e5e7eb',
                                 borderRadius: '6px',
-                                backgroundColor: 'white'
+                                backgroundColor: 'white',
+                                color: resultsPerPage ? '#111827' : '#9ca3af'
                             }}
                         >
+                            <option value="" disabled hidden>Select Results</option>
                             <option value={5}>5</option>
                             <option value={10}>10</option>
                             <option value={15}>15</option>
@@ -254,9 +256,11 @@ function LandingPage({ cart, setCart, favorites, setFavorites }: LandingPageProp
                                         fontSize: '0.875rem',
                                         border: '1px solid #e5e7eb',
                                         borderRadius: '6px',
-                                        backgroundColor: 'white'
+                                        backgroundColor: 'white',
+                                        color: cuisine ? '#111827' : '#9ca3af'
                                     }}
                                 >
+                                    <option value="" disabled hidden>Select Cuisine</option>
                                     <option value="">Any Cuisine</option>
                                     <option value="african">African</option>
                                     <option value="american">American</option>
@@ -301,9 +305,11 @@ function LandingPage({ cart, setCart, favorites, setFavorites }: LandingPageProp
                                         fontSize: '0.875rem',
                                         border: '1px solid #e5e7eb',
                                         borderRadius: '6px',
-                                        backgroundColor: 'white'
+                                        backgroundColor: 'white',
+                                        color: diet ? '#111827' : '#9ca3af'
                                     }}
                                 >
+                                    <option value="" disabled hidden>Select Diet</option>
                                     <option value="">Any Diet</option>
                                     <option value="gluten free">Gluten Free</option>
                                     <option value="ketogenic">Ketogenic</option>
@@ -333,9 +339,11 @@ function LandingPage({ cart, setCart, favorites, setFavorites }: LandingPageProp
                                         fontSize: '0.875rem',
                                         border: '1px solid #e5e7eb',
                                         borderRadius: '6px',
-                                        backgroundColor: 'white'
+                                        backgroundColor: 'white',
+                                        color: mealType ? '#111827' : '#9ca3af'
                                     }}
                                 >
+                                    <option value="" disabled hidden>Select Meal Type</option>
                                     <option value="">Any Meal Type</option>
                                     <option value="main course">Main Course</option>
                                     <option value="side dish">Side Dish</option>

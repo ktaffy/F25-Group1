@@ -1,4 +1,7 @@
-import { useState, useEffect } from 'react'
+
+import { useState, useEffect, useRef } from 'react'
+import * as sessionApi from '../api/sessionApi'
+import type { SessionState } from '../types/sessionTypes'
 import './CookingPage.css'
 
 type Page = 'landing' | 'cart' | 'cooking'
@@ -18,64 +21,138 @@ interface Schedule {
     totalDurationSec: number
 }
 
+
 interface CookingPageProps {
     schedule: Schedule | null
     setCurrentPage: (page: Page) => void
 }
 
 function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
-    const [currentStepIndex, setCurrentStepIndex] = useState(0)
-    const [timer, setTimer] = useState(0)
-    const [isTimerRunning, setIsTimerRunning] = useState(false)
+    const [sessionId, setSessionId] = useState<string | null>(null)
+    const [sessionState, setSessionState] = useState<SessionState | null>(null)
+    const [error, setError] = useState<string | null>(null)
+    // removed manualStep, not needed
+    const [viewStepIndex, setViewStepIndex] = useState<number | null>(null) // for local prev/next
+    const [elapsed, setElapsed] = useState<number>(0)
+    const timerRef = useRef<NodeJS.Timeout | null>(null)
 
+    // Restore sessionId from localStorage if present
     useEffect(() => {
-        let interval: NodeJS.Timeout | null = null
-        if (isTimerRunning) {
-            interval = setInterval(() => {
-                setTimer(timer => timer + 1)
+        const storedId = localStorage.getItem('cookingSessionId')
+        if (storedId) setSessionId(storedId)
+    }, [])
+
+    // Create session if not present
+    useEffect(() => {
+        if (!sessionId && schedule) {
+            (async () => {
+                try {
+                    const id = await sessionApi.createSession(schedule)
+                    setSessionId(id)
+                    localStorage.setItem('cookingSessionId', id)
+                } catch (err) {
+                    setError('Failed to initialize cooking session')
+                }
+            })()
+        }
+    }, [sessionId, schedule])
+
+    // Subscribe to session updates
+    useEffect(() => {
+        if (!sessionId) return
+        let cleanup: (() => void) | undefined
+        (async () => {
+            try {
+                const state = await sessionApi.getSessionState(sessionId)
+                setSessionState(state)
+                setElapsed(state.elapsedSec)
+                cleanup = sessionApi.subscribeToSession(sessionId, (state) => {
+                    setSessionState(state)
+                    setElapsed(state.elapsedSec)
+                })
+            } catch (err) {
+                setError('Failed to subscribe to session')
+            }
+        })()
+        return () => { if (cleanup) cleanup() }
+    }, [sessionId])
+
+    // Elapsed clock (keeps running even if paused, but only updates if session is running)
+    useEffect(() => {
+        if (!sessionState) return
+        if (sessionState.session.status === 'running') {
+            timerRef.current = setInterval(() => {
+                setElapsed(e => e + 1)
             }, 1000)
-        } else if (!isTimerRunning && timer !== 0) {
-            clearInterval(interval!)
+        } else if (timerRef.current) {
+            clearInterval(timerRef.current)
+            timerRef.current = null
         }
-        return () => {
-            if (interval) clearInterval(interval)
-        }
-    }, [isTimerRunning, timer])
+        return () => { if (timerRef.current) clearInterval(timerRef.current) }
+    }, [sessionState && sessionState.session.status])
 
-    if (!schedule || !schedule.items) {
-        return (
-            <div className="cooking-page">
-                <div className="loading-state">
-                    <h2>Loading cooking schedule...</h2>
-                </div>
-            </div>
-        )
-    }
-
-    const currentStep = schedule.items[currentStepIndex]
-    const progress = ((currentStepIndex + 1) / schedule.items.length) * 100
-    const stepDuration = currentStep.endSec - currentStep.startSec
-
-    const nextStep = () => {
-        if (currentStepIndex < schedule.items.length - 1) {
-            setCurrentStepIndex(currentStepIndex + 1)
-            setTimer(0)
-            setIsTimerRunning(false)
+    // Clean up session on quit
+    const handleQuit = async () => {
+        if (sessionId) {
+            try {
+                await sessionApi.endSession(sessionId)
+            } catch {}
+            localStorage.removeItem('cookingSessionId')
+            setSessionId(null)
+            setSessionState(null)
+            // removed setManualStep(null)
+            setCurrentPage('cart')
         }
     }
 
-    const prevStep = () => {
-        if (currentStepIndex > 0) {
-            setCurrentStepIndex(currentStepIndex - 1)
-            setTimer(0)
-            setIsTimerRunning(false)
+    // Next: skip step via API, then refresh state
+    const handleNext = async () => {
+        if (sessionId && sessionState && sessionState.session.status === 'running') {
+            await sessionApi.skipStep(sessionId)
+            // Always fetch latest state after skip
+            const state = await sessionApi.getSessionState(sessionId)
+            setSessionState(state)
+            setElapsed(state.elapsedSec)
+            setViewStepIndex(null)
+        }
+    }
+    // Prev: show previous step locally (does not rewind timer)
+    const handlePrev = () => {
+        if (!sessionState || !sessionState.current.foreground) return
+        if (sessionState.session.status !== 'running') return
+        const prevIndex = sessionState.current.foreground.stepIndex - 1
+        if (prevIndex < 0) return
+        setViewStepIndex(prevIndex)
+    }
+
+    // If viewStepIndex is set, show that step locally
+
+    const handleStart = async () => {
+        if (!sessionId || !sessionState) return
+        if (sessionState.session.status === 'idle' || sessionState.session.status === 'paused') {
+            try {
+                if (sessionState.session.status === 'idle') {
+                    await sessionApi.startSession(sessionId)
+                } else {
+                    await sessionApi.resumeSession(sessionId)
+                }
+                // Always fetch latest state after start/resume
+                const state = await sessionApi.getSessionState(sessionId)
+                setSessionState(state)
+                setElapsed(state.elapsedSec)
+            } catch (err) {
+                setError('Failed to start/resume session')
+            }
         }
     }
 
-    const formatTime = (seconds: number): string => {
-        const mins = Math.floor(seconds / 60)
-        const secs = seconds % 60
-        return `${mins}:${secs.toString().padStart(2, '0')}`
+    const handlePause = async () => {
+        if (!sessionId || !sessionState || sessionState.session.status !== 'running') return
+        try {
+            await sessionApi.pauseSession(sessionId)
+        } catch (err) {
+            setError('Failed to pause session')
+        }
     }
 
     const formatDuration = (seconds: number): string => {
@@ -85,102 +162,154 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
         return remainingSecs > 0 ? `${mins}m ${remainingSecs}s` : `${mins}m`
     }
 
+    if (error) {
+        return (
+            <div className="cooking-page">
+                <div className="error-state">
+                    <h2>Error</h2>
+                    <p>{error}</p>
+                    <button onClick={handleQuit}>Quit</button>
+                </div>
+            </div>
+        )
+    }
+
+    if (!schedule || !sessionState) {
+        return (
+            <div className="cooking-page">
+                <div className="loading-state">
+                    <h2>Loading cooking session...</h2>
+                </div>
+            </div>
+        )
+    }
+
+    let currentStep = sessionState.current.foreground
+    if (viewStepIndex !== null && schedule && schedule.items[viewStepIndex]) {
+        currentStep = {
+            ...schedule.items[viewStepIndex],
+            remainingSec: (schedule.items[viewStepIndex].endSec - schedule.items[viewStepIndex].startSec)
+        }
+    }
+    const backgroundSteps = sessionState.current.background || []
+    const nextStep = sessionState.nextForeground
+    const progress = (elapsed / schedule.totalDurationSec) * 100
+
     return (
         <div className="cooking-page">
             <div className="cooking-header">
-                <h1>Cooking in Progress</h1>
+                <h1 className="cooking-title">Cooking in Progress</h1>
                 <div className="overall-progress">
                     <div className="progress-bar">
                         <div className="progress-fill" style={{ width: `${progress}%` }}></div>
                     </div>
                     <p className="progress-text">
-                        Step {currentStepIndex + 1} of {schedule.items.length} •
-                        Total time: {formatDuration(schedule.totalDurationSec)}
+                        <span>Time Elapsed: {formatDuration(elapsed)}</span>
+                        <span>Total: {formatDuration(schedule.totalDurationSec)}</span>
                     </p>
                 </div>
             </div>
 
-            <div className="current-step-container">
-                <div className="step-header">
-                    <h2 className="recipe-name">{currentStep.recipeName}</h2>
-                    <div className={`attention-badge ${currentStep.attention}`}>
-                        {currentStep.attention === 'foreground' ? '👨‍🍳 Active' : '⏰ Passive'}
-                    </div>
-                </div>
-
-                <div className="step-content">
-                    <div className="step-number">Step {currentStep.stepIndex + 1}</div>
-                    <p className="step-instruction">{currentStep.text}</p>
-
-                    <div className="timer-section">
-                        <div className="timer-info">
-                            <span className="duration">Duration: {formatDuration(stepDuration)}</span>
-                            <span className="timing">
-                                {formatDuration(currentStep.startSec)} - {formatDuration(currentStep.endSec)}
-                            </span>
-                        </div>
-
-                        <div className="timer-controls">
-                            <div className="timer-display">
-                                <span className="timer-time">{formatTime(timer)}</span>
-                            </div>
-                            <div className="timer-buttons">
-                                <button
-                                    onClick={() => setIsTimerRunning(!isTimerRunning)}
-                                    className={`timer-btn ${isTimerRunning ? 'pause' : 'play'}`}
-                                >
-                                    {isTimerRunning ? 'Pause' : 'Start'}
-                                </button>
-                                <button
-                                    onClick={() => setTimer(0)}
-                                    className="timer-btn reset"
-                                >
-                                    Reset
-                                </button>
-                            </div>
+            {currentStep && (
+                <div className="current-step-container">
+                    <div className="step-header">
+                        <h2 className="recipe-name">{currentStep.recipeName}</h2>
+                        <div className={`attention-badge ${currentStep.attention}`}>
+                            {currentStep.attention === 'foreground' ? '👨‍🍳 Active' : '⏰ Passive'}
                         </div>
                     </div>
+
+                    <div className="step-content">
+                        <div className="step-number">Step {currentStep.stepIndex + 1}</div>
+                        <p className="step-instruction">{currentStep.text}</p>
+
+                        <div className="timer-section">
+                            <div className="timer-info">
+                                <span className="duration">Time Remaining: {formatDuration(currentStep.remainingSec)}</span>
+                                <span className="timing">
+                                    {formatDuration(currentStep.startSec)} - {formatDuration(currentStep.endSec)}
+                                </span>
+                            </div>
+
+                            <div className="timer-controls">
+                                {sessionState.session.status === 'running' ? (
+                                    <button
+                                        onClick={async () => {
+                                            await handlePause();
+                                            const state = await sessionApi.getSessionState(sessionId!);
+                                            setSessionState(state);
+                                            setElapsed(state.elapsedSec);
+                                        }}
+                                        className="timer-btn pause"
+                                    >
+                                        Pause
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={async () => {
+                                            await handleStart();
+                                            const state = await sessionApi.getSessionState(sessionId!);
+                                            setSessionState(state);
+                                            setElapsed(state.elapsedSec);
+                                        }}
+                                        className="timer-btn play"
+                                    >
+                                        {sessionState.session.status === 'idle' ? 'Start' : 'Resume'}
+                                    </button>
+                                )}
+                                <button onClick={handlePrev} className="timer-btn skip" disabled={currentStep.stepIndex === 0 || sessionState.session.status !== 'running'}>
+                                    ← Previous
+                                </button>
+                                <button onClick={handleNext} className="timer-btn skip" disabled={sessionState.session.status !== 'running'}>
+                                    Next →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            )}
 
-            <div className="navigation-controls">
-                <button
-                    onClick={prevStep}
-                    disabled={currentStepIndex === 0}
-                    className="nav-btn prev"
-                >
-                    ← Previous
-                </button>
-
-                <div className="step-indicator">
-                    {schedule.items.map((_, index) => (
-                        <div
-                            key={index}
-                            className={`step-dot ${index === currentStepIndex ? 'active' : ''} ${index < currentStepIndex ? 'completed' : ''}`}
-                            onClick={() => {
-                                setCurrentStepIndex(index)
-                                setTimer(0)
-                                setIsTimerRunning(false)
-                            }}
-                        />
+            {backgroundSteps.length > 0 && (
+                <div className="background-steps">
+                    <h3>Background Steps</h3>
+                    {backgroundSteps.map((step) => (
+                        <div key={`${step.recipeId}-${step.stepIndex}`} className="background-step">
+                            <div className="step-info">
+                                <span className="recipe-name">{step.recipeName}</span>
+                                <span className="step-number">Step {step.stepIndex + 1}</span>
+                            </div>
+                            <p className="step-instruction">{step.text}</p>
+                            <div className="timer-info">
+                                <span className="remaining">Remaining: {formatDuration(step.remainingSec)}</span>
+                            </div>
+                        </div>
                     ))}
                 </div>
+            )}
 
-                {currentStepIndex < schedule.items.length - 1 ? (
-                    <button onClick={nextStep} className="nav-btn next">
-                        Next →
-                    </button>
-                ) : (
-                    <button
-                        onClick={() => setCurrentPage('cart')}
-                        className="nav-btn finish"
-                    >
-                        Finish
-                    </button>
-                )}
+            {nextStep && (
+                <div className="next-step">
+                    <h3>Coming Up Next</h3>
+                    <div className="next-step-content">
+                        <div className="step-info">
+                            <span className="recipe-name">{nextStep.recipeName}</span>
+                            <span className="step-number">Step {nextStep.stepIndex + 1}</span>
+                        </div>
+                        <p className="step-instruction">{nextStep.text}</p>
+                        <span className="starts-in">Starts in: {formatDuration(nextStep.startsInSec)}</span>
+                    </div>
+                </div>
+            )}
+
+            <div className="navigation-controls">
+                <button onClick={handleQuit} className="nav-btn finish">
+                    Quit
+                </button>
             </div>
         </div>
     )
 }
+
+
 
 export default CookingPage
