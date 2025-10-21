@@ -77,31 +77,48 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
         return () => { if (cleanup) cleanup() }
     }, [sessionId])
 
-    // Elapsed clock (keeps running even if paused, but only updates if session is running)
+    // Elapsed clock and step progression
     useEffect(() => {
-        if (!sessionState) return
+        if (!sessionId || !sessionState) return
+        
         if (sessionState.session.status === 'running') {
             timerRef.current = setInterval(() => {
-                setElapsed(e => e + 1)
+                setElapsed(e => {
+                    const newElapsed = e + 1
+                    // Request fresh state when time advances to ensure UI updates
+                    if (sessionState.current.foreground && 
+                        newElapsed >= sessionState.current.foreground.endSec) {
+                        sessionApi.getSessionState(sessionId).then(state => {
+                            setSessionState(state)
+                            setElapsed(state.elapsedSec)
+                        })
+                    }
+                    return newElapsed
+                })
             }, 1000)
         } else if (timerRef.current) {
             clearInterval(timerRef.current)
             timerRef.current = null
         }
         return () => { if (timerRef.current) clearInterval(timerRef.current) }
-    }, [sessionState && sessionState.session.status])
+    }, [sessionState && sessionState.session.status, sessionId])
 
     // Clean up session on quit
     const handleQuit = async () => {
         if (sessionId) {
             try {
                 await sessionApi.endSession(sessionId)
-            } catch {}
-            localStorage.removeItem('cookingSessionId')
-            setSessionId(null)
-            setSessionState(null)
-            // removed setManualStep(null)
-            setCurrentPage('cart')
+                // Get final state to show completion screen
+                const finalState = await sessionApi.getSessionState(sessionId)
+                setSessionState(finalState)
+                localStorage.removeItem('cookingSessionId')
+            } catch {
+                // If we can't get the final state, just clean up and return to cart
+                localStorage.removeItem('cookingSessionId')
+                setSessionId(null)
+                setSessionState(null)
+                setCurrentPage('cart')
+            }
         }
     }
 
@@ -179,6 +196,25 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
             <div className="cooking-page">
                 <div className="loading-state">
                     <h2>Loading cooking session...</h2>
+                </div>
+            </div>
+        )
+    }
+
+    // Show completion screen when session is ended or all steps are done
+    const isSessionComplete = sessionState.session.status === 'ended' || !sessionState.current.foreground || elapsed >= schedule.totalDurationSec
+    if (isSessionComplete) {
+        const recipeNames = Array.from(new Set(schedule.items.map(item => item.recipeName))).join(', ')
+        return (
+            <div className="cooking-page">
+                <div className="completion-screen">
+                    <h1 className="cooking-title">Cooking Complete! 🎉</h1>
+                    <p className="completion-message">
+                        <strong>We hope you enjoyed cooking {recipeNames}!</strong>
+                    </p>
+                    <button onClick={() => setCurrentPage('landing')} className="nav-btn finish">
+                        Return to Recipes
+                    </button>
                 </div>
             </div>
         )
@@ -263,6 +299,15 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
                                 <button onClick={handleNext} className="timer-btn skip" disabled={sessionState.session.status !== 'running'}>
                                     Next →
                                 </button>
+                                {viewStepIndex !== null && (
+                                    <button 
+                                        onClick={() => setViewStepIndex(null)}
+                                        className="timer-btn skip"
+                                        title="Return to the current step"
+                                    >
+                                        Current Step
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
