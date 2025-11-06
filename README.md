@@ -17,4 +17,4 @@ Our customers are regular people who have struggled before with preparing multip
     - Vercel is a free service that has automatic CI/CD, and monitoring.
 
 ## Deployment Plan
-The frontend will be hosted in Vercel. Similarly, the backend built in Node.js could be deployed as serverless functions in Vercel. This backend system could connect to the Supabase database as well which is hosted through their services on the web.   
+The frontend is deployed on vercel with this url: <a>https://mise-en-place-alpha.vercel.app/</a>. The backedn is deployed with the serverless option on Railway. The database is also run through supabase.
