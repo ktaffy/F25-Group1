@@ -1,6 +1,6 @@
 import type { SessionState } from '../types/sessionTypes';
 
-const API_BASE_URL = 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.API_BASE_URL
 
 export async function createSession(schedule: any): Promise<string> {
     const response = await fetch(`${API_BASE_URL}/sessions`, {

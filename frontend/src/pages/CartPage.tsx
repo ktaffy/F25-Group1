@@ -44,7 +44,7 @@ function CartPage({ cart, setCart, setCurrentPage, setCookingSchedule }: CartPag
         setLoading(true)
         try {
             const recipeIds = cart.map(recipe => recipe.id)
-            const schedule = await generateSchedule(recipeIds)
+            const schedule = await generateSchedule(recipeIds as any)
             setCookingSchedule(schedule)
             setCurrentPage('cooking')
         } catch (error) {
