@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint .",
-    "test": "jest"
+    "test": "cross-env NODE_OPTIONS='--experimental-vm-modules' jest --config jest.config.js --runInBand --coverage"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +20,7 @@
     "@types/node": "^24.5.2",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
+    "cross-env": "^10.1.0",
     "eslint": "^9.36.0",
     "jest": "^30.2.0",
     "tsx": "^4.20.5",

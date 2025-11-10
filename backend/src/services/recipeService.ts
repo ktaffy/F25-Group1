@@ -35,13 +35,10 @@ function validateRecipe(recipe: Recipe): boolean {
  */
 export async function getRandomRecipes(number = 5): Promise<Recipe[]> {
   const data = await fetchRandomRecipes(number);
-  console.log('Raw data from Supabase:', data);
 
   const formatted = data.map(formatRecipe);
-  console.log('After formatting:', formatted);
 
   const validated = formatted.filter(validateRecipe);
-  console.log('After validation:', validated);
 
   return validated;
 }

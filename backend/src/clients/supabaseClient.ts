@@ -52,9 +52,6 @@ export async function fetchRandomRecipes(limit = 10) {
     const { data, error } = await supabase
         .rpc('get_random_recipes', { recipe_limit: limit });
 
-    console.log('Data:', data);
-    console.log('Error:', error);
-
     if (error) throw error;
     return data || [];
   }
