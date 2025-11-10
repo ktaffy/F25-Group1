@@ -17,4 +17,4 @@ Our customers are regular people who have struggled before with preparing multip
     - Vercel is a free service that has automatic CI/CD, and monitoring.
 
 ## Deployment Plan
-The frontend is deployed on vercel with this url: <a>https://mise-en-place-alpha.vercel.app/</a>. The backedn is deployed with the serverless option on Railway. The database is also run through supabase.
+The frontend is deployed on vercel with this url: <a>https://mise-en-place-alpha.vercel.app/</a>. The backend is deployed with the serverless option on Railway. The database is also run through supabase.
