@@ -36,5 +36,7 @@ export function formatRecipe(raw: any): Recipe {
     dishTypes: raw.dish_types || [],
     ingredients,
     instructions,
+    averageRating: raw.averageRating,
+    reviewCount: raw.reviewCount
   };
 }
