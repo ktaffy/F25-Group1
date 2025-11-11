@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createRecipe } from '../api'
 import './CreateRecipePage.css'
 
-type Page = 'landing' | 'favorites' | 'cart' | 'cooking' | 'createRecipe'
+type Page = 'landing' | 'favorites' | 'plan' | 'cooking' | 'createRecipe'
 
 interface Ingredient {
     name: string

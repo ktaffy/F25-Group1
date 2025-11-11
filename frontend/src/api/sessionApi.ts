@@ -1,6 +1,15 @@
 import type { SessionState } from '../types/sessionTypes';
+import { getApiBaseUrl } from '../utils/apiBase';
 
-const API_BASE_URL = import.meta.env.API_BASE_URL
+type ApiError = Error & { status?: number }
+
+const API_BASE_URL = getApiBaseUrl()
+
+function withStatusError(response: Response, message: string): never {
+    const error = new Error(message) as ApiError
+    error.status = response.status
+    throw error
+}
 
 export async function createSession(schedule: any): Promise<string> {
     const response = await fetch(`${API_BASE_URL}/sessions`, {
@@ -12,7 +21,7 @@ export async function createSession(schedule: any): Promise<string> {
     });
     
     if (!response.ok) {
-        throw new Error('Failed to create session');
+        withStatusError(response, 'Failed to create session')
     }
     
     const data = await response.json();
@@ -25,7 +34,7 @@ export async function startSession(sessionId: string): Promise<void> {
     });
     
     if (!response.ok) {
-        throw new Error('Failed to start session');
+        withStatusError(response, 'Failed to start session')
     }
 }
 
@@ -35,7 +44,7 @@ export async function pauseSession(sessionId: string): Promise<void> {
     });
     
     if (!response.ok) {
-        throw new Error('Failed to pause session');
+        withStatusError(response, 'Failed to pause session')
     }
 }
 
@@ -45,7 +54,7 @@ export async function resumeSession(sessionId: string): Promise<void> {
     });
     
     if (!response.ok) {
-        throw new Error('Failed to resume session');
+        withStatusError(response, 'Failed to resume session')
     }
 }
 
@@ -55,7 +64,7 @@ export async function skipStep(sessionId: string): Promise<void> {
     });
     
     if (!response.ok) {
-        throw new Error('Failed to skip step');
+        withStatusError(response, 'Failed to skip step')
     }
 }
 
@@ -63,7 +72,7 @@ export async function getSessionState(sessionId: string): Promise<SessionState> 
     const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}/state`);
     
     if (!response.ok) {
-        throw new Error('Failed to get session state');
+        withStatusError(response, 'Failed to get session state')
     }
     
     return response.json();
@@ -89,6 +98,6 @@ export async function endSession(sessionId: string): Promise<void> {
     });
     
     if (!response.ok) {
-        throw new Error('Failed to end session');
+        withStatusError(response, 'Failed to end session')
     }
 }

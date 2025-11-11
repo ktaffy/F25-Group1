@@ -1,6 +1,6 @@
 import './FavoritesPage.css'
 
-type Page = 'landing' | 'favorites' | 'cart' | 'cooking'
+type Page = 'landing' | 'favorites' | 'plan' | 'cooking'
 
 interface Recipe {
     id: number
@@ -62,7 +62,7 @@ function FavoritesPage({ favorites, setFavorites, cart, setCart, setCurrentPage 
                                         disabled={cart.some(item => item.id === recipe.id)}
                                         className="add-to-cart-button"
                                     >
-                                        {cart.some(item => item.id === recipe.id) ? '✓ In Cart' : 'Add to Cart'}
+                                        {cart.some(item => item.id === recipe.id) ? '✓ In Plan' : 'Add to Plan'}
                                     </button>
                                     <button
                                         onClick={() => removeFromFavorites(recipe.id)}

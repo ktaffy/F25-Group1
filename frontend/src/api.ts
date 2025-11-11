@@ -1,5 +1,6 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+import { getApiBaseUrl } from './utils/apiBase';
 
+const API_BASE = getApiBaseUrl();
 
 interface Recipe {
     id: string
