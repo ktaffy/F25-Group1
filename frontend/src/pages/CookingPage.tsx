@@ -326,12 +326,14 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
                                         >
                                             ← Previous
                                         </button>
-                                        <button
-                                            onClick={handleNext}
-                                            className="timer-btn skip"
-                                        >
-                                            Next →
-                                        </button>
+                                        {viewStepIndex === null && (
+                                            <button
+                                                onClick={handleNext}
+                                                className="timer-btn skip"
+                                            >
+                                                Next →
+                                            </button>
+                                        )}
                                         {viewStepIndex !== null && (
                                             <button
                                                 onClick={() => setViewStepIndex(null)}
