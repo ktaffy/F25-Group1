@@ -23,7 +23,7 @@ describe("recipeService (live integration)", () => {
   });
 
   it("searchRecipes() should return object with totalResults and items", async () => {
-    const result = await recipeService.searchRecipes("chicken", 3);
+    const result = await recipeService.searchRecipes({ query: "chicken" });
     expect(result).toHaveProperty("totalResults");
     expect(result).toHaveProperty("items");
     expect(Array.isArray(result.items)).toBe(true);

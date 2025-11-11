@@ -88,6 +88,8 @@ function formatSpoonacularRecipe(raw: any): Recipe {
     dishTypes: raw.dishTypes || [],
     ingredients,
     instructions,
+    averageRating: raw.spoonacularScore ? raw.spoonacularScore / 20 : 0,
+    reviewCount: 0,
   };
 }
 
