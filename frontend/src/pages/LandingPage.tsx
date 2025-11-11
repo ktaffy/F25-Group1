@@ -60,7 +60,8 @@ function LandingPage({ cart, setCart, favorites, setFavorites }: LandingPageProp
         setLoading(true)
         try {
             const filters: Record<string, string> = {
-                number: resultsPerPage.toString()
+                number: resultsPerPage.toString(),
+                limit: resultsPerPage.toString()
             }
             
             // Add search query if present
@@ -491,7 +492,7 @@ function LandingPage({ cart, setCart, favorites, setFavorites }: LandingPageProp
                                         className="add-to-cart-button"
                                         disabled={cart.some(item => item.id === selectedRecipe.id)}
                                     >
-                                        {cart.some(item => item.id === selectedRecipe.id) ? 'Added to Cart' : 'Add to Cart'}
+                                        {cart.some(item => item.id === selectedRecipe.id) ? 'Added to Plan' : 'Add to Plan'}
                                     </button>
                                     <button
                                         onClick={() => toggleFavorite(selectedRecipe)}
@@ -580,7 +581,7 @@ function LandingPage({ cart, setCart, favorites, setFavorites }: LandingPageProp
                                         className="card-add-button"
                                         disabled={cart.some(item => item.id === recipe.id)}
                                     >
-                                        {cart.some(item => item.id === recipe.id) ? 'Added' : 'Add to Cart'}
+                                        {cart.some(item => item.id === recipe.id) ? 'Added' : 'Add to Plan'}
                                     </button>
                                 </div>
                             </div>

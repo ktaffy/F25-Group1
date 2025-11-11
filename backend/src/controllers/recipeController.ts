@@ -14,11 +14,7 @@ export async function getRandomRecipes(req: Request, res: Response, next: NextFu
 
 export async function searchRecipes(req: Request, res: Response, next: NextFunction) {
   try {
-    const { query, limit } = req.query;
-    const results = await recipeService.searchRecipes(
-      query as string || '',
-      Number(limit) || 20
-    );
+    const results = await recipeService.searchRecipes(req.query);
     res.json(results);
   } catch (err) {
     next(err);
