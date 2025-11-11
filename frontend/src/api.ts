@@ -34,6 +34,20 @@ interface Review {
     created_at: string
 }
 
+const normalizeRecipe = (recipe: any): Recipe => {
+    const parsedId = typeof recipe.id === 'string' ? parseInt(recipe.id, 10) : recipe.id
+    return {
+        id: Number.isFinite(parsedId) ? parsedId : 0,
+        title: recipe.title || '',
+        image: recipe.image || '',
+        readyInMinutes: recipe.readyInMinutes ?? recipe.ready_in_minutes ?? 0,
+        servings: recipe.servings,
+        summary: recipe.summary,
+        averageRating: recipe.averageRating ?? recipe.average_rating,
+        reviewCount: recipe.reviewCount ?? recipe.review_count
+    }
+}
+
 export const fetchRandomRecipes = async (number: number = 5): Promise<Recipe[]> => {
     const params = new URLSearchParams({ number: number.toString() })
 
@@ -269,6 +283,52 @@ export const getRecipeReviews = async (recipeId: string): Promise<Review[]> => {
 
 export const deleteReview = async (recipeId: string, userId: string): Promise<void> => {
     const response = await fetch(`${API_BASE}/recipes/${recipeId}/reviews`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId })
+    })
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+    }
+}
+
+export const fetchUserFavorites = async (userId: string): Promise<Recipe[]> => {
+    if (!userId) return []
+
+    try {
+        const response = await fetch(`${API_BASE}/recipes/favorites?userId=${encodeURIComponent(userId)}`)
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json()
+        const items = Array.isArray(data) ? data : []
+        return items.map(normalizeRecipe)
+    } catch (error) {
+        console.error('Error fetching user favorites:', error)
+        return []
+    }
+}
+
+export const addFavorite = async (userId: string, recipeId: string | number): Promise<void> => {
+    const response = await fetch(`${API_BASE}/recipes/favorites/${recipeId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId })
+    })
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+    }
+}
+
+export const removeFavorite = async (userId: string, recipeId: string | number): Promise<void> => {
+    const response = await fetch(`${API_BASE}/recipes/favorites/${recipeId}`, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',

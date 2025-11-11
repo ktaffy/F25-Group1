@@ -6,6 +6,7 @@ import PlanPage from './pages/PlanPage'
 import FavoritesPage from './pages/FavoritesPage'
 import CookingPage from './pages/CookingPage'
 import CreateRecipePage from './pages/CreateRecipePage'
+import { fetchUserFavorites } from './api'
 import './App.css'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -68,6 +69,38 @@ function App() {
     return () => subscription.unsubscribe()
   }, [])
 
+  useEffect(() => {
+    const userId = session?.user.id
+
+    if (!userId) {
+      setFavorites([])
+      return
+    }
+
+    let cancelled = false
+
+    const loadFavorites = async () => {
+      try {
+        const favoriteRecipes = await fetchUserFavorites(userId)
+        if (!cancelled) {
+          const normalizedFavorites: Recipe[] = favoriteRecipes.map((favorite) => ({
+            ...favorite,
+            id: typeof favorite.id === 'string' ? parseInt(favorite.id, 10) : favorite.id
+          })) as Recipe[]
+          setFavorites(normalizedFavorites)
+        }
+      } catch (error) {
+        console.error('Error loading user favorites:', error)
+      }
+    }
+
+    loadFavorites()
+
+    return () => {
+      cancelled = true
+    }
+  }, [session?.user.id])
+
   const handleAuth = async () => {
     setLoading(true)
     setMessage('')
@@ -116,6 +149,7 @@ function App() {
             setFavorites={setFavorites}
             cart={cart}
             setCart={setCart}
+            currentUserId={session?.user.id || ''}
             setCurrentPage={setCurrentPage}
           />
         )

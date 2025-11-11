@@ -1,4 +1,6 @@
+import type { Dispatch, SetStateAction } from 'react'
 import './FavoritesPage.css'
+import { removeFavorite as removeFavoriteApi } from '../api'
 
 type Page = 'landing' | 'favorites' | 'plan' | 'cooking'
 
@@ -11,15 +13,24 @@ interface Recipe {
 
 interface FavoritesPageProps {
     favorites: Recipe[]
-    setFavorites: (favorites: Recipe[]) => void
+    setFavorites: Dispatch<SetStateAction<Recipe[]>>
     cart: Recipe[]
     setCart: (cart: Recipe[]) => void
     setCurrentPage: (page: Page) => void
+    currentUserId: string
 }
 
-function FavoritesPage({ favorites, setFavorites, cart, setCart, setCurrentPage }: FavoritesPageProps) {
-    const removeFromFavorites = (recipeId: number) => {
-        setFavorites(favorites.filter(item => item.id !== recipeId))
+function FavoritesPage({ favorites, setFavorites, cart, setCart, setCurrentPage, currentUserId }: FavoritesPageProps) {
+    const removeFromFavorites = async (recipeId: number) => {
+        if (!currentUserId) return
+        const previousFavorites = [...favorites]
+        setFavorites(prev => prev.filter(item => item.id !== recipeId))
+        try {
+            await removeFavoriteApi(currentUserId, recipeId)
+        } catch (error) {
+            console.error('Error removing favorite:', error)
+            setFavorites(previousFavorites)
+        }
     }
 
     const addToCart = (recipe: Recipe) => {

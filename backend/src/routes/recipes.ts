@@ -74,44 +74,6 @@ router.get("/search", recipeController.searchRecipes);
 
 /**
  * @openapi
- * /recipes/{id}:
- *   get:
- *     summary: Get recipe details by ID
- *     tags:
- *       - Recipes
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: integer }
- *     responses:
- *       200:
- *         description: Full recipe details
- *       404:
- *         description: Recipe not found or invalid
- */
-router.get("/:id", recipeController.getRecipe);
-
-/**
- * @openapi
- * /recipes/{id}/steps:
- *   get:
- *     summary: Get steps for a recipe
- *     tags:
- *       - Recipes
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: integer }
- *     responses:
- *       200:
- *         description: Recipe steps
- */
-router.get("/:id/steps", recipeController.getRecipeSteps);
-
-/**
- * @openapi
  * /recipes/favorites:
  *   get:
  *     summary: Get user's favorite recipes
@@ -138,6 +100,44 @@ router.get("/:id/steps", recipeController.getRecipeSteps);
  *         description: Missing userId parameter
  */
 router.get("/favorites", recipeController.getUserFavorites);
+
+/**
+ * @openapi
+ * /recipes/{id}/steps:
+ *   get:
+ *     summary: Get steps for a recipe
+ *     tags:
+ *       - Recipes
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Recipe steps
+ */
+router.get("/:id/steps", recipeController.getRecipeSteps);
+
+/**
+ * @openapi
+ * /recipes/{id}:
+ *   get:
+ *     summary: Get recipe details by ID
+ *     tags:
+ *       - Recipes
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Full recipe details
+ *       404:
+ *         description: Recipe not found or invalid
+ */
+router.get("/:id", recipeController.getRecipe);
 
 /**
  * @openapi

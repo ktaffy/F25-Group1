@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { fetchRandomRecipes, fetchRecipeDetails, searchRecipes } from '../api'
+import type { Dispatch, SetStateAction } from 'react'
+import { fetchRandomRecipes, fetchRecipeDetails, searchRecipes, addFavorite as addFavoriteApi, removeFavorite as removeFavoriteApi } from '../api'
 import './LandingPage.css'
 import RecipeReviews from './RecipeReviews'
 interface Recipe {
@@ -17,7 +18,7 @@ interface LandingPageProps {
     cart: Recipe[]
     setCart: (cart: Recipe[]) => void
     favorites: Recipe[]
-    setFavorites: (favorites: Recipe[]) => void
+    setFavorites: Dispatch<SetStateAction<Recipe[]>>
     currentUserId: string
   }
 
@@ -117,11 +118,44 @@ function LandingPage({ cart, setCart, favorites, setFavorites, currentUserId }: 
         }
     }
 
-    const toggleFavorite = (recipe: Recipe) => {
-        if (favorites.find(item => item.id === recipe.id)) {
-            setFavorites(favorites.filter(item => item.id !== recipe.id))
+    const toggleFavorite = async (recipe: Recipe) => {
+        if (!currentUserId) {
+            console.warn('User must be signed in to manage favorites')
+            return
+        }
+
+        const recipeId = recipe.id
+        const isFavorited = favorites.some(item => item.id === recipeId)
+
+        if (isFavorited) {
+            setFavorites(prev => prev.filter(item => item.id !== recipeId))
         } else {
-            setFavorites([...favorites, recipe])
+            setFavorites(prev => {
+                if (prev.some(item => item.id === recipeId)) {
+                    return prev
+                }
+                return [...prev, recipe]
+            })
+        }
+
+        try {
+            if (isFavorited) {
+                await removeFavoriteApi(currentUserId, recipeId)
+            } else {
+                await addFavoriteApi(currentUserId, recipeId)
+            }
+        } catch (error) {
+            console.error('Error updating favorites:', error)
+            if (isFavorited) {
+                setFavorites(prev => {
+                    if (prev.some(item => item.id === recipeId)) {
+                        return prev
+                    }
+                    return [...prev, recipe]
+                })
+            } else {
+                setFavorites(prev => prev.filter(item => item.id !== recipeId))
+            }
         }
     }
 
