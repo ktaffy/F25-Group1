@@ -24,6 +24,11 @@ dist-ssr
 *.sln
 *.sw?
 
+<<<<<<< HEAD
 # jest
 coverage/
 
+=======
+#testing
+coverage
+>>>>>>> df18ba32a6e8f4a1e1d90810323fdd75373b6b6e
