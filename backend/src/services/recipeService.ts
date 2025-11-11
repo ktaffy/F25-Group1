@@ -187,7 +187,8 @@ export async function getRecipeSteps(id: string): Promise<string[]> {
 */
 export async function getUserFavorites(userId: string): Promise<Recipe[]> {
   const data = await fetchUserFavorites(userId);
-  return data.map(formatRecipe).filter(validateRecipe);
+  const safeData = data.filter((item: any) => !!item);
+  return safeData.map(formatRecipe).filter(validateRecipe);
 }
 
 /**

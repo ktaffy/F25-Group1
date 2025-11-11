@@ -107,7 +107,9 @@ export async function fetchUserFavorites(userId: string) {
 
     if (error) throw error;
 
-    return data.map(item => item.recipes);
+    return (data || [])
+        .map((item): Recipe | null => ((item.recipes ?? null) as unknown as Recipe | null))
+        .filter((recipe): recipe is Recipe => Boolean(recipe));
 }
 
 /**
