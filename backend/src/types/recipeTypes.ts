@@ -13,6 +13,8 @@ export interface Recipe {
   dishTypes: string[];
   ingredients: Ingredient[];
   instructions: InstructionStep[];
+  averageRating: number | null;
+  reviewCount: number;
 }
 
 /**

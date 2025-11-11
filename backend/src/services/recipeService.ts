@@ -8,7 +8,10 @@ import {
   isFavorited as isFavoritedDb,
   createUserRecipe as createUserRecipeDb,
   updateUserRecipe as updateUserRecipeDb,
-  deleteUserRecipe as deleteUserRecipeDb
+  deleteUserRecipe as deleteUserRecipeDb,
+  addReview as addReviewDb,
+  fetchRecipeReviews as fetchRecipeReviewsDb,
+  deleteReview as deleteReviewDb
 } from "../clients/supabaseClient.js";
 import { formatRecipe } from "../utils/recipeFormatter.js";
 import type { Recipe, InstructionStep } from "../types/recipeTypes.js";
@@ -155,4 +158,42 @@ export async function updateUserRecipe(userId: string, recipeId: string, updates
 */
 export async function deleteUserRecipe(userId: string, recipeId: string) {
   return await deleteUserRecipeDb(userId, recipeId);
+}
+
+/**
+ * Add a new rating/review for a recipe.
+ * @param userId ID of the user submitting the review.
+ * @param recipeId ID of the recipe being reviewed.
+ * @param rating The score (1-5).
+ */
+export async function addReview(userId: string, recipeId: string, rating: number) {
+  return await addReviewDb(userId, recipeId, rating);
+}
+
+type MinimalReview = {
+  user_id: string;
+  rating: number;
+  created_at: string; // or Date object
+}
+
+/**
+ * Get all ratings/reviews for a specific recipe.
+ * @param recipeId ID of the recipe.
+ * @returns Array of minimal review objects.
+ */
+export async function getRecipeReviews(recipeId: string): Promise<MinimalReview[]> {
+  const data = await fetchRecipeReviewsDb(recipeId);
+  return data;
+}
+
+/**
+ * Delete a specific user's review for a recipe.
+ * @param userId ID of the user whose review is being deleted.
+ * @param recipeId ID of the recipe.
+ * @returns boolean indicating success (true if a row was deleted, false otherwise).
+ */
+export async function deleteReview(userId: string, recipeId: string): Promise<boolean> {
+  const success = await deleteReviewDb(userId, recipeId);
+
+  return success;
 }

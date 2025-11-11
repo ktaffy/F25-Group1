@@ -153,3 +153,60 @@ export async function deleteUserRecipe(req: Request, res: Response, next: NextFu
     next(err);
   }
 }
+
+export async function addReview(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { userId, rating } = req.body;
+    const { recipeId } = req.params;
+
+    if (!userId || rating === undefined) {
+      return res.status(400).json({ error: 'userId and rating are required' });
+    }
+
+    const numericRating = Number(rating);
+    if (isNaN(numericRating) || numericRating < 1 || numericRating > 5) {
+      return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+    }
+
+    await recipeService.addReview(userId as string, recipeId as string, numericRating);
+
+    res.status(201).json({ success: true, message: 'Review successfully added' });
+
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getRecipeReviews(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { recipeId } = req.params;
+
+    const reviews = await recipeService.getRecipeReviews(recipeId as string);
+
+    res.json(reviews);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteReview(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { userId } = req.body;
+    const { recipeId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    const deleted = await recipeService.deleteReview(userId as string, recipeId as string);
+
+    if (deleted) {
+      res.json({ success: true, message: 'Review successfully deleted' });
+    } else {
+      return notFound(res, "Review not found or user not authorized");
+    }
+
+  } catch (err) {
+    next(err);
+  }
+}

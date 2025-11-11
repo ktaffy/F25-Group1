@@ -234,3 +234,62 @@ export async function deleteUserRecipe(userId: string, recipeId: string) {
     if (error) throw error;
     return { success: true };
 }
+
+/**
+ * Add a rating/review to a recipe.
+ * @param userId - user id
+ * @param recipeId - recipe id (MUST be 'text' to match the recipes table PK)
+ * @param rating - the score (1-5)
+ */
+export async function addReview(userId: string, recipeId: string, rating: number) {
+    const { error } = await supabase
+        .from('reviews')
+        .insert({
+            user_id: userId,
+            recipe_id: recipeId,
+            rating: rating
+        });
+
+    if (error && error.code !== '23505') {
+        throw error;
+    }
+
+    return { success: true };
+}
+
+/**
+ * Get all reviews for a single recipe.
+ * @param recipeId - recipe id (MUST be 'text' to match the recipes table PK)
+ * @returns array of reviews
+ */
+export async function fetchRecipeReviews(recipeId: string) {
+    const { data, error } = await supabase
+        .from('reviews')
+        .select(`
+            user_id,
+            rating,
+            created_at
+        `)
+        .eq('recipe_id', recipeId)
+        .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+}
+
+/**
+ * Delete a user's review for a recipe.
+ * @param userId - user id
+ * @param recipeId - recipe id (MUST be 'text' to match the recipes table PK)
+ * @returns boolean indicating if any row was deleted
+ */
+export async function deleteReview(userId: string, recipeId: string): Promise<boolean> {
+    const { count, error } = await supabase
+        .from('reviews')
+        .delete({ count: 'exact' })
+        .eq('user_id', userId)
+        .eq('recipe_id', recipeId);
+
+    if (error) throw error;
+    return count === 1;
+}
