@@ -11,11 +11,12 @@ const OPENAI_KEY = process.env.OPENAI_API_KEY;
  * @returns scheduleResult
  */
 export async function generateSchedule(
-    recipes: { recipeId: string; recipeName: string; rawSteps: string[] }[]
+  recipes: { recipeId: string; recipeName: string; rawSteps: string[] }[]
 ): Promise<ScheduleResult> {
-    if (!OPENAI_KEY) throw new Error("OPENAI_API_KEY missing");
+  const OPENAI_KEY = process.env.OPENAI_API_KEY;
+  if (!OPENAI_KEY) throw new Error("OPENAI_API_KEY missing");
 
-    const sys = `You are a cooking scheduler assistant.
+  const sys = `You are a cooking scheduler assistant.
 Your job is to produce a complete cooking timeline for multiple recipes.
 - Each recipe has raw steps (unordered).
 - You must order the steps within each recipe logically AND interleave them across recipes to minimize idle time.
@@ -41,33 +42,33 @@ Your job is to produce a complete cooking timeline for multiple recipes.
     "totalDurationSec": 2400
   }`;
 
-    const userText = `Here are the recipes and their raw steps:\n\n${JSON.stringify(
-        recipes,
-        null,
-        2
-    )}\n\nReturn only valid JSON in the format described above.`;
+  const userText = `Here are the recipes and their raw steps:\n\n${JSON.stringify(
+    recipes,
+    null,
+    2
+  )}\n\nReturn only valid JSON in the format described above.`;
 
-    const { data } = await axios.post(
-        OPENAI_API,
-        {
-            model: OPENAI_MODEL,
-            temperature: 0.2,
-            response_format: { type: "json_object" },
-            messages: [
-                { role: "system", content: sys },
-                { role: "user", content: userText },
-            ],
-        },
-        {
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${OPENAI_KEY}`,
-            },
-        }
-    );
+  const { data } = await axios.post(
+    OPENAI_API,
+    {
+      model: OPENAI_MODEL,
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: sys },
+        { role: "user", content: userText },
+      ],
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_KEY}`,
+      },
+    }
+  );
 
-    const content = data?.choices?.[0]?.message?.content;
-    if (!content) throw new Error("[openai] empty response");
+  const content = data?.choices?.[0]?.message?.content;
+  if (!content) throw new Error("[openai] empty response");
 
-    return JSON.parse(content) as ScheduleResult;
+  return JSON.parse(content) as ScheduleResult;
 }

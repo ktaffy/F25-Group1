@@ -8,5 +8,6 @@ export default {
   },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', { useESM: true, tsconfig: 'tsconfig.jest.json' }]
-  }
+  },
+  testTimeout: 60000,
 };
