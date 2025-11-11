@@ -1,10 +1,10 @@
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import * as sessionApi from '../api/sessionApi'
 import type { SessionState } from '../types/sessionTypes'
 import './CookingPage.css'
 
-type Page = 'landing' | 'cart' | 'cooking'
+type Page = 'landing' | 'plan' | 'cooking'
 
 interface CookingStep {
     recipeId: string
@@ -27,6 +27,8 @@ interface CookingPageProps {
     setCurrentPage: (page: Page) => void
 }
 
+type ApiError = Error & { status?: number }
+
 function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
     const [sessionId, setSessionId] = useState<string | null>(null)
     const [sessionState, setSessionState] = useState<SessionState | null>(null)
@@ -35,6 +37,21 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
     const [viewStepIndex, setViewStepIndex] = useState<number | null>(null) // for local prev/next
     const [elapsed, setElapsed] = useState<number>(0)
     const timerRef = useRef<NodeJS.Timeout | null>(null)
+
+    const createNewSession = useCallback(async () => {
+        if (!schedule) return null
+        try {
+            const id = await sessionApi.createSession(schedule)
+            setSessionId(id)
+            localStorage.setItem('cookingSessionId', id)
+            setError(null)
+            return id
+        } catch (err) {
+            console.error(err)
+            setError('Failed to initialize cooking session')
+            return null
+        }
+    }, [schedule])
 
     // Restore sessionId from localStorage if present
     useEffect(() => {
@@ -45,17 +62,9 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
     // Create session if not present
     useEffect(() => {
         if (!sessionId && schedule) {
-            (async () => {
-                try {
-                    const id = await sessionApi.createSession(schedule)
-                    setSessionId(id)
-                    localStorage.setItem('cookingSessionId', id)
-                } catch (err) {
-                    setError('Failed to initialize cooking session')
-                }
-            })()
+            createNewSession()
         }
-    }, [sessionId, schedule])
+    }, [sessionId, schedule, createNewSession])
 
     // Subscribe to session updates
     useEffect(() => {
@@ -71,11 +80,19 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
                     setElapsed(state.elapsedSec)
                 })
             } catch (err) {
+                const status = (err as ApiError)?.status
+                if (status === 404) {
+                    localStorage.removeItem('cookingSessionId')
+                    setSessionId(null)
+                    setSessionState(null)
+                    await createNewSession()
+                    return
+                }
                 setError('Failed to subscribe to session')
             }
         })()
         return () => { if (cleanup) cleanup() }
-    }, [sessionId])
+    }, [sessionId, createNewSession])
 
     // Elapsed clock and step progression
     useEffect(() => {
@@ -113,11 +130,11 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
                 setSessionState(finalState)
                 localStorage.removeItem('cookingSessionId')
             } catch {
-                // If we can't get the final state, just clean up and return to cart
+                // If we can't get the final state, just clean up and return to plan
                 localStorage.removeItem('cookingSessionId')
                 setSessionId(null)
                 setSessionState(null)
-                setCurrentPage('cart')
+                setCurrentPage('plan')
             }
         }
     }
@@ -201,8 +218,14 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
         )
     }
 
-    // Show completion screen when session is ended or all steps are done
-    const isSessionComplete = sessionState.session.status === 'ended' || !sessionState.current.foreground || elapsed >= schedule.totalDurationSec
+    // Show completion screen only when session truly finished
+    const noActiveOrUpcomingStep = !sessionState.current.foreground && !sessionState.nextForeground
+    const isSessionComplete =
+        sessionState.session.status === 'ended' ||
+        (
+            (sessionState.session.status === 'running' || sessionState.session.status === 'paused') &&
+            (noActiveOrUpcomingStep || elapsed >= schedule.totalDurationSec)
+        )
     if (isSessionComplete) {
         const recipeNames = Array.from(new Set(schedule.items.map(item => item.recipeName))).join(', ')
         return (

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchRandomRecipes, fetchRecipeDetails, searchRecipes } from '../api'
 import './LandingPage.css'
-
+import RecipeReviews from './RecipeReviews'
 interface Recipe {
     id: number
     title: string
@@ -9,6 +9,8 @@ interface Recipe {
     readyInMinutes: number
     servings?: number
     summary?: string
+    averageRating?: number
+    reviewCount?: number
 }
 
 interface LandingPageProps {
@@ -16,9 +18,10 @@ interface LandingPageProps {
     setCart: (cart: Recipe[]) => void
     favorites: Recipe[]
     setFavorites: (favorites: Recipe[]) => void
-}
+    currentUserId: string
+  }
 
-function LandingPage({ cart, setCart, favorites, setFavorites }: LandingPageProps) {
+function LandingPage({ cart, setCart, favorites, setFavorites, currentUserId }: LandingPageProps) {
     const [recipes, setRecipes] = useState<Recipe[]>([])
     const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null)
     const [loading, setLoading] = useState(false)
@@ -60,7 +63,8 @@ function LandingPage({ cart, setCart, favorites, setFavorites }: LandingPageProp
         setLoading(true)
         try {
             const filters: Record<string, string> = {
-                number: resultsPerPage.toString()
+                number: resultsPerPage.toString(),
+                limit: resultsPerPage.toString()
             }
             
             // Add search query if present
@@ -476,6 +480,11 @@ function LandingPage({ cart, setCart, favorites, setFavorites }: LandingPageProp
                                     {selectedRecipe.servings && (
                                         <span className="meta-item">👥 {selectedRecipe.servings} servings</span>
                                     )}
+                                    {selectedRecipe.averageRating && selectedRecipe.averageRating > 0 && (
+                                        <span className="meta-item">
+                                            ⭐ {selectedRecipe.averageRating} ({selectedRecipe.reviewCount} reviews)
+                                        </span>
+                                    )}
                                 </div>
 
                                 {selectedRecipe.summary && (
@@ -485,13 +494,13 @@ function LandingPage({ cart, setCart, favorites, setFavorites }: LandingPageProp
                                     />
                                 )}
 
-                                <div style={{ display: 'flex', gap: '12px' }}>
+                                <div style={{ display: 'flex', gap: '12px', marginBottom: '1.5rem' }}>
                                     <button
                                         onClick={() => addToCart(selectedRecipe)}
                                         className="add-to-cart-button"
                                         disabled={cart.some(item => item.id === selectedRecipe.id)}
                                     >
-                                        {cart.some(item => item.id === selectedRecipe.id) ? 'Added to Cart' : 'Add to Cart'}
+                                        {cart.some(item => item.id === selectedRecipe.id) ? 'Added to Plan' : 'Add to Plan'}
                                     </button>
                                     <button
                                         onClick={() => toggleFavorite(selectedRecipe)}
@@ -508,6 +517,12 @@ function LandingPage({ cart, setCart, favorites, setFavorites }: LandingPageProp
                                         {favorites.some(item => item.id === selectedRecipe.id) ? '❤️' : '🤍'}
                                     </button>
                                 </div>
+
+                                {/* Add Reviews Section */}
+                                <RecipeReviews
+                                    recipeId={String(selectedRecipe.id)}
+                                    currentUserId={currentUserId}
+                                />
                             </div>
                         </div>
                     </div>
@@ -575,12 +590,32 @@ function LandingPage({ cart, setCart, favorites, setFavorites }: LandingPageProp
                                     <h3 className="card-title">{recipe.title}</h3>
                                     <p className="card-time">⏱️ {recipe.readyInMinutes} minutes</p>
 
+                                    {/* Rating Display */}
+                                    <div className="card-rating">
+                                        {recipe.averageRating && recipe.averageRating > 0 ? (
+                                            <div className="rating-display">
+                                                <span className="rating-stars">
+                                                    {'★'.repeat(Math.floor(recipe.averageRating))}
+                                                    {'☆'.repeat(5 - Math.floor(recipe.averageRating))}
+                                                </span>
+                                                <span className="rating-text">
+                                                    {recipe.averageRating} ({recipe.reviewCount} review{recipe.reviewCount !== 1 ? 's' : ''})
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <div className="no-ratings">
+                                                <span className="rating-stars">☆☆☆☆☆</span>
+                                                <span className="rating-text">No ratings yet</span>
+                                            </div>
+                                        )}
+                                    </div>
+
                                     <button
                                         onClick={() => addToCart(recipe)}
                                         className="card-add-button"
                                         disabled={cart.some(item => item.id === recipe.id)}
                                     >
-                                        {cart.some(item => item.id === recipe.id) ? 'Added' : 'Add to Cart'}
+                                        {cart.some(item => item.id === recipe.id) ? 'Added' : 'Add to Plan'}
                                     </button>
                                 </div>
                             </div>

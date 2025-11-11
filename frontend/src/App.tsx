@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import type { Session } from '@supabase/supabase-js'
 import LandingPage from './pages/LandingPage'
-import CartPage from './pages/CartPage'
+import PlanPage from './pages/PlanPage'
 import FavoritesPage from './pages/FavoritesPage'
 import CookingPage from './pages/CookingPage'
 import CreateRecipePage from './pages/CreateRecipePage'
@@ -17,7 +17,7 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
-type Page = 'landing' | 'favorites' | 'cart' | 'cooking' | 'createRecipe'
+type Page = 'landing' | 'favorites' | 'plan' | 'cooking' | 'createRecipe'
 
 interface Recipe {
   id: number
@@ -26,6 +26,8 @@ interface Recipe {
   readyInMinutes: number
   servings?: number
   summary?: string
+  averageRating?: number
+  reviewCount?: number
 }
 
 interface Schedule {
@@ -98,7 +100,15 @@ function App() {
   const renderPage = () => {
     switch (currentPage) {
       case 'landing':
-        return <LandingPage cart={cart} setCart={setCart} favorites={favorites} setFavorites={setFavorites} />
+        return (
+          <LandingPage
+            cart={cart}
+            setCart={setCart}
+            favorites={favorites}
+            setFavorites={setFavorites}
+            currentUserId={session?.user.id || ''}
+          />
+        )
       case 'favorites':
         return (
           <FavoritesPage
@@ -109,9 +119,9 @@ function App() {
             setCurrentPage={setCurrentPage}
           />
         )
-      case 'cart':
+      case 'plan':
         return (
-          <CartPage
+          <PlanPage
             cart={cart}
             setCart={setCart}
             setCurrentPage={setCurrentPage}
@@ -133,7 +143,15 @@ function App() {
           />
         )
       default:
-        return <LandingPage cart={cart} setCart={setCart} favorites={favorites} setFavorites={setFavorites} />
+        return (
+          <LandingPage
+            cart={cart}
+            setCart={setCart}
+            favorites={favorites}
+            setFavorites={setFavorites}
+            currentUserId={session?.user.id || ''}
+          />
+        )
     }
   }
 
@@ -161,10 +179,10 @@ function App() {
               ➕ Create Recipe
             </button>
             <button
-              onClick={() => setCurrentPage('cart')}
-              className={currentPage === 'cart' ? 'nav-button active' : 'nav-button'}
+              onClick={() => setCurrentPage('plan')}
+              className={currentPage === 'plan' ? 'nav-button active' : 'nav-button'}
             >
-              Cart ({cart.length})
+              Plan ({cart.length})
             </button>
           </div>
           <div className="nav-right">

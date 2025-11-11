@@ -409,4 +409,122 @@ router.put("/:recipeId", recipeController.updateUserRecipe);
  */
 router.delete("/:recipeId", recipeController.deleteUserRecipe);
 
+/**
+ * @openapi
+ * /recipes/{recipeId}/reviews:
+ *   post:
+ *     summary: Submit a new rating for a recipe
+ *     tags: [Reviews]
+ *     parameters:
+ *       - in: path
+ *         name: recipeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: "716429"
+ *         description: The ID of the recipe being reviewed.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - rating
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 format: uuid
+ *                 example: "550e8400-e29b-41d4-a716-446655440000"
+ *                 description: The ID of the user submitting the review.
+ *               rating:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 5
+ *                 example: 5
+ *                 description: The score given to the recipe (1-5).
+ *     responses:
+ *       201:
+ *         description: Review successfully added.
+ *       400:
+ *         description: Missing required fields or invalid rating value.
+ *       409:
+ *         description: Conflict, user has already reviewed this recipe.
+ */
+router.post("/:recipeId/reviews", recipeController.addReview);
+
+/**
+ * @openapi
+ * /recipes/{recipeId}/reviews:
+ *   get:
+ *     summary: Get all ratings/reviews for a specific recipe
+ *     tags: [Reviews]
+ *     parameters:
+ *       - in: path
+ *         name: recipeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: "716429"
+ *         description: The ID of the recipe to fetch reviews for.
+ *     responses:
+ *       200:
+ *         description: A list of reviews for the recipe.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   user_id:
+ *                     type: string
+ *                     format: uuid
+ *                   rating:
+ *                     type: integer
+ *                   created_at:
+ *                     type: string
+ *                     format: date-time
+ */
+router.get("/:recipeId/reviews", recipeController.getRecipeReviews);
+
+/**
+ * @openapi
+ * /recipes/{recipeId}/reviews:
+ *   delete:
+ *     summary: Delete a user's rating/review for a recipe
+ *     tags: [Reviews]
+ *     parameters:
+ *       - in: path
+ *         name: recipeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: "716429"
+ *         description: The ID of the recipe whose review is being deleted.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 format: uuid
+ *                 example: "550e8400-e29b-41d4-a716-446655440000"
+ *                 description: The ID of the user whose review to delete.
+ *     responses:
+ *       200:
+ *         description: Review successfully deleted.
+ *       400:
+ *         description: Missing userId in request body.
+ *       404:
+ *         description: Review not found or user not authorized.
+ */
+router.delete("/:recipeId/reviews", recipeController.deleteReview);
+
 export default router;

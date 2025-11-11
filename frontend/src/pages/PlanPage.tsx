@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { generateSchedule } from '../api'
-import './CartPage.css'
+import './PlanPage.css'
 
-type Page = 'landing' | 'cart' | 'cooking'
+type Page = 'landing' | 'plan' | 'cooking'
 
 interface Recipe {
     id: number
@@ -24,14 +24,14 @@ interface Schedule {
     totalDurationSec: number
 }
 
-interface CartPageProps {
+interface PlanPageProps {
     cart: Recipe[]
     setCart: (cart: Recipe[]) => void
     setCurrentPage: (page: Page) => void
     setCookingSchedule: (schedule: Schedule) => void
 }
 
-function CartPage({ cart, setCart, setCurrentPage, setCookingSchedule }: CartPageProps) {
+function PlanPage({ cart, setCart, setCurrentPage, setCookingSchedule }: PlanPageProps) {
     const [loading, setLoading] = useState(false)
 
     const removeFromCart = (recipeId: number) => {
@@ -57,15 +57,15 @@ function CartPage({ cart, setCart, setCurrentPage, setCookingSchedule }: CartPag
     return (
         <div className="cart-page">
             <div className="cart-header">
-                <h1 className="cart-title">Your Recipe Cart</h1>
-                <p className="cart-subtitle">Review your selected recipes before cooking</p>
+                <h1 className="cart-title">Your Cooking Plan</h1>
+                <p className="cart-subtitle">Review your plan before heading to the kitchen</p>
             </div>
 
             {cart.length === 0 ? (
                 <div className="empty-cart">
                     <div className="empty-cart-icon">🛒</div>
-                    <h2>Your cart is empty</h2>
-                    <p>Add some delicious recipes to get started!</p>
+                    <h2>Your plan is empty</h2>
+                    <p>Add some delicious recipes to build your plan!</p>
                     <button onClick={() => setCurrentPage('landing')} className="browse-button">
                         Browse Recipes
                     </button>
@@ -96,7 +96,7 @@ function CartPage({ cart, setCart, setCurrentPage, setCookingSchedule }: CartPag
                         <div className="cart-summary">
                             <h2>Ready to Cook?</h2>
                             <p className="total-info">
-                                {cart.length} recipe{cart.length !== 1 ? 's' : ''} selected
+                                {cart.length} recipe{cart.length !== 1 ? 's' : ''} in your plan
                             </p>
                         </div>
 
@@ -121,4 +121,4 @@ function CartPage({ cart, setCart, setCurrentPage, setCookingSchedule }: CartPag
     )
 }
 
-export default CartPage
+export default PlanPage
