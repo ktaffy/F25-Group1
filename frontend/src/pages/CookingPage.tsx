@@ -316,20 +316,32 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
                                         {sessionState.session.status === 'idle' ? 'Start' : 'Resume'}
                                     </button>
                                 )}
-                                <button onClick={handlePrev} className="timer-btn skip" disabled={currentStep.stepIndex === 0 || sessionState.session.status !== 'running'}>
-                                    ← Previous
-                                </button>
-                                <button onClick={handleNext} className="timer-btn skip" disabled={sessionState.session.status !== 'running'}>
-                                    Next →
-                                </button>
-                                {viewStepIndex !== null && (
-                                    <button 
-                                        onClick={() => setViewStepIndex(null)}
-                                        className="timer-btn skip"
-                                        title="Return to the current step"
-                                    >
-                                        Current Step
-                                    </button>
+
+                                {sessionState.session.status === 'running' && (
+                                    <>
+                                        <button
+                                            onClick={handlePrev}
+                                            className="timer-btn skip"
+                                            disabled={currentStep.stepIndex === 0}
+                                        >
+                                            ← Previous
+                                        </button>
+                                        <button
+                                            onClick={handleNext}
+                                            className="timer-btn skip"
+                                        >
+                                            Next →
+                                        </button>
+                                        {viewStepIndex !== null && (
+                                            <button
+                                                onClick={() => setViewStepIndex(null)}
+                                                className="timer-btn skip"
+                                                title="Return to the current step"
+                                            >
+                                                Current Step
+                                            </button>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>
