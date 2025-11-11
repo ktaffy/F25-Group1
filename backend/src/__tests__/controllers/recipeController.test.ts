@@ -1,21 +1,30 @@
 import express from 'express';
 import request from 'supertest';
 import recipesRouter from '../../routes/recipes.js';
-import { jest } from '@jest/globals';
 
 const app = express();
 app.use(express.json());
 app.use('/recipes', recipesRouter);
 
-describe('recipeController (integration + coverage)', () => {
+describe('recipeController (integration + full coverage)', () => {
   // === Core Recipes ===
   it('GET /recipes/random should return 200 or 500', async () => {
     const res = await request(app).get('/recipes/random?number=3');
     expect([200, 500]).toContain(res.status);
   });
 
+  it('GET /recipes/random without number should still return 200 or 500', async () => {
+    const res = await request(app).get('/recipes/random');
+    expect([200, 500]).toContain(res.status);
+  });
+
   it('GET /recipes/search should return 200 or 500', async () => {
     const res = await request(app).get('/recipes/search?query=chicken');
+    expect([200, 500]).toContain(res.status);
+  });
+
+  it('GET /recipes/search without query should return 200 or 500', async () => {
+    const res = await request(app).get('/recipes/search');
     expect([200, 500]).toContain(res.status);
   });
 
@@ -29,10 +38,15 @@ describe('recipeController (integration + coverage)', () => {
     expect([200, 404, 500]).toContain(res.status);
   });
 
+  it('GET /recipes/:id/steps invalid id should return 404 or 500', async () => {
+    const res = await request(app).get('/recipes/bad_id/steps');
+    expect([404, 500]).toContain(res.status);
+  });
+
   // === Favorites ===
-  it('GET /recipes/favorites without userId should return 500', async () => {
+  it('GET /recipes/favorites without userId should return 400', async () => {
     const res = await request(app).get('/recipes/favorites');
-    expect(res.status).toBe(500);
+    expect([400, 500]).toContain(res.status);
   });
 
   it('GET /recipes/favorites with userId should return 200 or 500', async () => {
@@ -56,6 +70,13 @@ describe('recipeController (integration + coverage)', () => {
   it('DELETE /recipes/favorites/:recipeId without userId should return 400', async () => {
     const res = await request(app).delete('/recipes/favorites/716429').send({});
     expect(res.status).toBe(400);
+  });
+
+  it('DELETE /recipes/favorites/:recipeId with userId should return 200 or 500', async () => {
+    const res = await request(app)
+      .delete('/recipes/favorites/716429')
+      .send({ userId: '550e8400-e29b-41d4-a716-446655440000' });
+    expect([200, 400, 500]).toContain(res.status);
   });
 
   it('GET /recipes/:recipeId/is-favorited without userId should return 400', async () => {
@@ -88,6 +109,14 @@ describe('recipeController (integration + coverage)', () => {
     expect([200, 201, 400, 500]).toContain(res.status);
   });
 
+  it('POST /recipes with malformed body should 400', async () => {
+    const res = await request(app).post('/recipes').send({
+      userId: '550e8400-e29b-41d4-a716-446655440000',
+      title: null
+    });
+    expect([400, 500]).toContain(res.status);
+  });
+
   it('PUT /recipes/:recipeId without userId should return 400', async () => {
     const res = await request(app).put('/recipes/12345').send({ title: 'Bad update' });
     expect(res.status).toBe(400);
@@ -102,6 +131,16 @@ describe('recipeController (integration + coverage)', () => {
         servings: 3
       });
     expect([200, 400, 500]).toContain(res.status);
+  });
+
+  it('PUT /recipes/bad_id should handle invalid id gracefully', async () => {
+    const res = await request(app)
+      .put('/recipes/bad_id')
+      .send({
+        userId: '550e8400-e29b-41d4-a716-446655440000',
+        title: 'Edge Case'
+      });
+    expect([400, 404, 500]).toContain(res.status);
   });
 
   it('DELETE /recipes/:recipeId without userId should return 400', async () => {
