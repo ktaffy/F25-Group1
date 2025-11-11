@@ -1,0 +1,173 @@
+.recipe-reviews {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: white;
+}
+
+.reviews-title {
+    margin: 0 0 1rem 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.rating-summary {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.average-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rating-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.rating-stars {
+    font-size: 1.25rem;
+    color: #f59e0b;
+}
+
+.rating-count {
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.add-review-section,
+.user-review-section {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #f9fafb;
+    border-radius: 6px;
+}
+
+.add-review-section h4,
+.user-review-section h4 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.star-rating {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.star {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #d1d5db;
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 0.25rem;
+}
+
+.star.active {
+    color: #f59e0b;
+}
+
+.star:hover {
+    color: #f59e0b;
+    transform: scale(1.1);
+}
+
+.submit-review-btn,
+.delete-review-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.submit-review-btn {
+    background: #3b82f6;
+    color: white;
+}
+
+.submit-review-btn:hover:not(:disabled) {
+    background: #2563eb;
+}
+
+.delete-review-btn {
+    background: #ef4444;
+    color: white;
+    margin-left: 1rem;
+}
+
+.delete-review-btn:hover:not(:disabled) {
+    background: #dc2626;
+}
+
+.submit-review-btn:disabled,
+.delete-review-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.reviews-list {
+    margin-top: 1.5rem;
+}
+
+.reviews-list h4 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.review-item {
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 0.75rem;
+    background: white;
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.review-rating {
+    font-size: 1rem;
+    color: #f59e0b;
+}
+
+.review-date {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.your-review-badge {
+    font-size: 0.75rem;
+    color: #059669;
+    background: #d1fae5;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+}
+
+.error-message {
+    color: #dc2626;
+    background: #fef2f2;
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin: 1rem 0;
+    font-size: 0.875rem;
+    border: 1px solid #fecaca;
+}

@@ -26,6 +26,8 @@ interface Recipe {
   readyInMinutes: number
   servings?: number
   summary?: string
+  averageRating?: number
+  reviewCount?: number
 }
 
 interface Schedule {
@@ -98,7 +100,15 @@ function App() {
   const renderPage = () => {
     switch (currentPage) {
       case 'landing':
-        return <LandingPage cart={cart} setCart={setCart} favorites={favorites} setFavorites={setFavorites} />
+        return (
+          <LandingPage
+            cart={cart}
+            setCart={setCart}
+            favorites={favorites}
+            setFavorites={setFavorites}
+            currentUserId={session?.user.id || ''}
+          />
+        )
       case 'favorites':
         return (
           <FavoritesPage
@@ -133,7 +143,15 @@ function App() {
           />
         )
       default:
-        return <LandingPage cart={cart} setCart={setCart} favorites={favorites} setFavorites={setFavorites} />
+        return (
+          <LandingPage
+            cart={cart}
+            setCart={setCart}
+            favorites={favorites}
+            setFavorites={setFavorites}
+            currentUserId={session?.user.id || ''}
+          />
+        )
     }
   }
 

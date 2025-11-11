@@ -8,6 +8,8 @@ interface Recipe {
     readyInMinutes: number
     servings?: number
     summary?: string
+    averageRating?: number
+    reviewCount?: number
 }
 
 interface CookingStep {
@@ -25,6 +27,12 @@ interface Schedule {
     totalDurationSec: number
 }
 
+interface Review {
+    user_id: string
+    rating: number
+    created_at: string
+}
+
 export const fetchRandomRecipes = async (number: number = 5): Promise<Recipe[]> => {
     const params = new URLSearchParams({ number: number.toString() })
 
@@ -35,16 +43,42 @@ export const fetchRandomRecipes = async (number: number = 5): Promise<Recipe[]> 
         }
         const data = await response.json()
         console.log('Random recipes response:', data)
-        
-        // Handle different response structures
+
+        let recipes: Recipe[] = [];
         if (Array.isArray(data)) {
-            return data
+            recipes = data
         } else if (data.recipes && Array.isArray(data.recipes)) {
-            return data.recipes
+            recipes = data.recipes
         } else {
             console.error('Unexpected response format:', data)
             return []
         }
+
+        const recipesWithRatings = await Promise.all(
+            recipes.map(async (recipe) => {
+                try {
+                    const reviews = await getRecipeReviews(recipe.id);
+                    const averageRating = reviews.length > 0
+                        ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+                        : 0;
+
+                    return {
+                        ...recipe,
+                        averageRating: Math.round(averageRating * 10) / 10,
+                        reviewCount: reviews.length
+                    };
+                } catch (error) {
+                    console.error(`Error fetching reviews for recipe ${recipe.id}:`, error);
+                    return {
+                        ...recipe,
+                        averageRating: 0,
+                        reviewCount: 0
+                    };
+                }
+            })
+        );
+
+        return recipesWithRatings;
     } catch (error) {
         console.error('Error fetching recipes:', error)
         return []
@@ -76,27 +110,53 @@ export const searchRecipes = async (filters: Record<string, string> = {}): Promi
     try {
         const params = new URLSearchParams(filters)
         const response = await fetch(`${API_BASE}/recipes/search?${params}`)
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
         }
-        
+
         const data = await response.json()
         console.log('Search response:', data)
-        
-        // Handle different response structures
+
+        let recipes: Recipe[] = [];
         if (Array.isArray(data)) {
-            return data
+            recipes = data
         } else if (data.items && Array.isArray(data.items)) {
-            return data.items  // THIS IS THE FIX!
+            recipes = data.items
         } else if (data.results && Array.isArray(data.results)) {
-            return data.results
+            recipes = data.results
         } else if (data.recipes && Array.isArray(data.recipes)) {
-            return data.recipes
+            recipes = data.recipes
         } else {
             console.error('Unexpected search response format:', data)
             return []
         }
+
+        const recipesWithRatings = await Promise.all(
+            recipes.map(async (recipe) => {
+                try {
+                    const reviews = await getRecipeReviews(recipe.id);
+                    const averageRating = reviews.length > 0
+                        ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+                        : 0;
+
+                    return {
+                        ...recipe,
+                        averageRating: Math.round(averageRating * 10) / 10,
+                        reviewCount: reviews.length
+                    };
+                } catch (error) {
+                    console.error(`Error fetching reviews for recipe ${recipe.id}:`, error);
+                    return {
+                        ...recipe,
+                        averageRating: 0,
+                        reviewCount: 0
+                    };
+                }
+            })
+        );
+
+        return recipesWithRatings;
     } catch (error) {
         console.error('Error searching recipes:', error)
         return []
@@ -166,6 +226,48 @@ export const fetchUserRecipes = async (userId: string): Promise<Recipe[]> => {
 
 export const deleteRecipe = async (userId: string, recipeId: string): Promise<void> => {
     const response = await fetch(`${API_BASE}/recipes/${recipeId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId })
+    })
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+    }
+}
+
+export const addReview = async (recipeId: string, userId: string, rating: number): Promise<void> => {
+    const response = await fetch(`${API_BASE}/recipes/${recipeId}/reviews`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, rating })
+    })
+
+    if (!response.ok) {
+        if (response.status === 409) {
+            throw new Error('You have already reviewed this recipe')
+        }
+        throw new Error(`HTTP error! status: ${response.status}`)
+    }
+}
+
+export const getRecipeReviews = async (recipeId: string): Promise<Review[]> => {
+    const response = await fetch(`${API_BASE}/recipes/${recipeId}/reviews`)
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return Array.isArray(data) ? data : []
+}
+
+export const deleteReview = async (recipeId: string, userId: string): Promise<void> => {
+    const response = await fetch(`${API_BASE}/recipes/${recipeId}/reviews`, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
