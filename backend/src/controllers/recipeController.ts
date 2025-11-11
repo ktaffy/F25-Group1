@@ -67,6 +67,9 @@ export async function addFavorite(req: Request, res: Response, next: NextFunctio
     await recipeService.addFavorite(userId, recipeId as string);
     res.json({ success: true, message: 'Recipe added to favorites' });
   } catch (err) {
+    if (err instanceof recipeService.RecipeNotFoundError) {
+      return notFound(res, "Recipe not found or unavailable");
+    }
     next(err);
   }
 }

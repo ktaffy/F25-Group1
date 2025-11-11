@@ -61,12 +61,12 @@ export async function fetchRandomRecipes(limit = 10) {
  * @param id - recipe id
  * @returns recipe object
 */
-export async function fetchRecipeById(id: string): Promise<Recipe> {
+export async function fetchRecipeById(id: string): Promise<Recipe | null> {
     const { data, error } = await supabase
         .from('recipes')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -110,6 +110,31 @@ export async function fetchUserFavorites(userId: string) {
     return (data || [])
         .map((item): Recipe | null => ((item.recipes ?? null) as unknown as Recipe | null))
         .filter((recipe): recipe is Recipe => Boolean(recipe));
+}
+
+type UpsertRecipeInput = {
+    id: string;
+    title: string;
+    image?: string | null;
+    servings?: number | null;
+    ready_in_minutes?: number | null;
+    summary?: string | null;
+    ingredients?: any[] | null;
+    instructions?: string | null;
+    dish_types?: string[] | null;
+    source?: 'spoonacular' | 'user' | null;
+    source_url?: string | null;
+};
+
+export async function upsertRecipe(record: UpsertRecipeInput) {
+    const { data, error } = await supabase
+        .from('recipes')
+        .upsert(record, { onConflict: 'id' })
+        .select('*')
+        .single();
+
+    if (error) throw error;
+    return data;
 }
 
 /**

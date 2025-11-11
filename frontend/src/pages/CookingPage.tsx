@@ -152,9 +152,14 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
     }
     // Prev: show previous step locally (does not rewind timer)
     const handlePrev = () => {
-        if (!sessionState || !sessionState.current.foreground) return
+        if (!sessionState) return
         if (sessionState.session.status !== 'running') return
-        const prevIndex = sessionState.current.foreground.stepIndex - 1
+
+        const baseIndex = viewStepIndex !== null
+            ? viewStepIndex
+            : sessionState.current.foreground?.stepIndex ?? 0
+
+        const prevIndex = baseIndex - 1
         if (prevIndex < 0) return
         setViewStepIndex(prevIndex)
     }
@@ -244,15 +249,38 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
     }
 
     let currentStep = sessionState.current.foreground
-    if (viewStepIndex !== null && schedule && schedule.items[viewStepIndex]) {
+    const viewingStep = viewStepIndex !== null && schedule ? schedule.items[viewStepIndex] : null
+    const isViewingHistory = Boolean(viewingStep)
+
+    if (isViewingHistory && viewingStep) {
         currentStep = {
-            ...schedule.items[viewStepIndex],
-            remainingSec: (schedule.items[viewStepIndex].endSec - schedule.items[viewStepIndex].startSec)
+            ...viewingStep,
+            remainingSec: viewingStep.endSec - viewingStep.startSec
         }
     }
+
+    const totalDuration = schedule.totalDurationSec
+    const safeElapsed = Math.min(elapsed, totalDuration)
+    const computeRemaining = (endSec: number) => Math.max(0, Math.ceil(endSec - safeElapsed))
+    const computeStartsIn = (startSec: number) => Math.max(0, Math.ceil(startSec - safeElapsed))
+
     const backgroundSteps = sessionState.current.background || []
+    const backgroundStepsWithRemaining = backgroundSteps.map(step => ({
+        ...step,
+        liveRemaining: computeRemaining(step.endSec)
+    }))
+
     const nextStep = sessionState.nextForeground
-    const progress = (elapsed / schedule.totalDurationSec) * 100
+    const nextStepStartsIn = nextStep ? computeStartsIn(nextStep.startSec) : 0
+
+    const currentStepRemaining = currentStep
+        ? (isViewingHistory
+            ? Math.max(0, Math.ceil(currentStep.remainingSec ?? 0))
+            : computeRemaining(currentStep.endSec))
+        : 0
+
+    const progress = totalDuration > 0 ? (safeElapsed / totalDuration) * 100 : 0
+    const showPrevButton = sessionState.session.status === 'running' && (currentStep?.stepIndex ?? 0) > 0
 
     return (
         <div className="cooking-page">
@@ -263,7 +291,7 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
                         <div className="progress-fill" style={{ width: `${progress}%` }}></div>
                     </div>
                     <p className="progress-text">
-                        <span>Time Elapsed: {formatDuration(elapsed)}</span>
+                        <span>Time Elapsed: {formatDuration(safeElapsed)}</span>
                         <span>Total: {formatDuration(schedule.totalDurationSec)}</span>
                     </p>
                 </div>
@@ -284,7 +312,7 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
 
                         <div className="timer-section">
                             <div className="timer-info">
-                                <span className="duration">Time Remaining: {formatDuration(currentStep.remainingSec)}</span>
+                                <span className="duration">Time Remaining: {formatDuration(currentStepRemaining)}</span>
                                 <span className="timing">
                                     {formatDuration(currentStep.startSec)} - {formatDuration(currentStep.endSec)}
                                 </span>
@@ -319,13 +347,14 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
 
                                 {sessionState.session.status === 'running' && (
                                     <>
-                                        <button
-                                            onClick={handlePrev}
-                                            className="timer-btn skip"
-                                            disabled={currentStep.stepIndex === 0}
-                                        >
-                                            ← Previous
-                                        </button>
+                                        {showPrevButton && (
+                                            <button
+                                                onClick={handlePrev}
+                                                className="timer-btn skip"
+                                            >
+                                                ← Previous
+                                            </button>
+                                        )}
                                         {viewStepIndex === null && (
                                             <button
                                                 onClick={handleNext}
@@ -351,10 +380,44 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
                 </div>
             )}
 
+            {!currentStep && nextStep && (
+                <div className="current-step-container waiting-state">
+                    <div className="step-header">
+                        <h2 className="recipe-name">{nextStep.recipeName}</h2>
+                        <div className="attention-badge foreground">
+                            Waiting for next active step
+                        </div>
+                    </div>
+                    <div className="step-content">
+                        <div className="step-number">Next Step {nextStep.stepIndex + 1}</div>
+                        <p className="step-instruction">
+                            {nextStep.text}
+                        </p>
+                        <div className="timer-section">
+                            <div className="timer-info">
+                                <span className="duration">
+                                    Starts in: {formatDuration(nextStepStartsIn)}
+                                </span>
+                            </div>
+                            {sessionState.session.status === 'running' && (
+                                <div className="timer-controls">
+                                    <button
+                                        onClick={handleNext}
+                                        className="timer-btn skip"
+                                    >
+                                        Skip Wait →
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {backgroundSteps.length > 0 && (
                 <div className="background-steps">
                     <h3>Background Steps</h3>
-                    {backgroundSteps.map((step) => (
+                    {backgroundStepsWithRemaining.map((step) => (
                         <div key={`${step.recipeId}-${step.stepIndex}`} className="background-step">
                             <div className="step-info">
                                 <span className="recipe-name">{step.recipeName}</span>
@@ -362,7 +425,7 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
                             </div>
                             <p className="step-instruction">{step.text}</p>
                             <div className="timer-info">
-                                <span className="remaining">Remaining: {formatDuration(step.remainingSec)}</span>
+                                <span className="remaining">Remaining: {formatDuration(step.liveRemaining)}</span>
                             </div>
                         </div>
                     ))}
@@ -378,7 +441,7 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
                             <span className="step-number">Step {nextStep.stepIndex + 1}</span>
                         </div>
                         <p className="step-instruction">{nextStep.text}</p>
-                        <span className="starts-in">Starts in: {formatDuration(nextStep.startsInSec)}</span>
+                        <span className="starts-in">Starts in: {formatDuration(nextStepStartsIn)}</span>
                     </div>
                 </div>
             )}

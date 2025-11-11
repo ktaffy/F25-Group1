@@ -123,8 +123,15 @@ export const generateSchedule = async (recipeIds: string[]): Promise<Schedule> =
 
 export const searchRecipes = async (filters: Record<string, string> = {}): Promise<Recipe[]> => {
     try {
-        const params = new URLSearchParams(filters)
-        const response = await fetch(`${API_BASE}/recipes/search?${params}`)
+        const params = new URLSearchParams()
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                params.append(key, value)
+            }
+        })
+
+        const queryString = params.toString().replace(/\+/g, '%20')
+        const response = await fetch(`${API_BASE}/recipes/search?${queryString}`)
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)

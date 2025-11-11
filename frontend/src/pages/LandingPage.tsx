@@ -60,6 +60,8 @@ function LandingPage({ cart, setCart, favorites, setFavorites, currentUserId }: 
         }
     }
 
+    const sanitizeFilterValue = (value: string) => value.replace(/\s+/g, ' ').trim()
+
     const handleSearch = async () => {
         setLoading(true)
         try {
@@ -69,14 +71,19 @@ function LandingPage({ cart, setCart, favorites, setFavorites, currentUserId }: 
             }
             
             // Add search query if present
-            if (searchQuery.trim()) {
-                filters.query = searchQuery.trim()
+            const cleanedQuery = sanitizeFilterValue(searchQuery)
+            if (cleanedQuery) {
+                filters.query = cleanedQuery
             }
             
             // Add advanced filters
-            if (cuisine) filters.cuisine = cuisine
-            if (diet) filters.diet = diet
-            if (mealType) filters.type = mealType
+            const cleanedCuisine = sanitizeFilterValue(cuisine)
+            const cleanedDiet = sanitizeFilterValue(diet)
+            const cleanedMealType = sanitizeFilterValue(mealType)
+
+            if (cleanedCuisine) filters.cuisine = cleanedCuisine
+            if (cleanedDiet) filters.diet = cleanedDiet
+            if (cleanedMealType) filters.type = cleanedMealType
             
             const data = await searchRecipes(filters)
             // Convert string IDs to numbers

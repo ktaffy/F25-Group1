@@ -11,9 +11,13 @@ import {
   deleteUserRecipe as deleteUserRecipeDb,
   addReview as addReviewDb,
   fetchRecipeReviews as fetchRecipeReviewsDb,
-  deleteReview as deleteReviewDb
+  deleteReview as deleteReviewDb,
+  upsertRecipe
 } from "../clients/supabaseClient.js";
-import { fetchSearchRecipes as fetchSpoonacularSearchRecipes } from "../clients/spoonacularClient.js";
+import { 
+  fetchSearchRecipes as fetchSpoonacularSearchRecipes,
+  fetchRecipeById as fetchSpoonacularRecipeById
+} from "../clients/spoonacularClient.js";
 import { formatRecipe } from "../utils/recipeFormatter.js";
 import type { Recipe, InstructionStep, Ingredient } from "../types/recipeTypes.js";
 
@@ -93,6 +97,67 @@ function formatSpoonacularRecipe(raw: any): Recipe {
   };
 }
 
+export class RecipeNotFoundError extends Error {
+  constructor(message = "Recipe not found") {
+    super(message);
+    this.name = "RecipeNotFoundError";
+  }
+}
+
+function serializeInstructions(steps: InstructionStep[]): string {
+  return steps
+    .sort((a, b) => a.number - b.number)
+    .map((step) => step.step.trim())
+    .filter((step) => step.length > 0)
+    .join("\n");
+}
+
+function mapRecipeToDbPayload(recipe: Recipe) {
+  return {
+    id: recipe.id.toString(),
+    title: recipe.title,
+    image: recipe.image,
+    servings: recipe.servings,
+    ready_in_minutes: recipe.readyInMinutes,
+    summary: recipe.summary,
+    ingredients: recipe.ingredients,
+    instructions: serializeInstructions(recipe.instructions),
+    dish_types: recipe.dishTypes,
+    source: "spoonacular" as const,
+    source_url: recipe.sourceUrl,
+  };
+}
+
+async function ensureRecipeAvailable(recipeId: string): Promise<Recipe | null> {
+  const existing = await fetchRecipeById(recipeId);
+  if (existing) {
+    const formatted = formatRecipe(existing);
+    return validateRecipe(formatted) ? formatted : null;
+  }
+
+  const numericId = Number(recipeId);
+  if (!Number.isFinite(numericId)) {
+    return null;
+  }
+
+  let spoonacularRaw;
+  try {
+    spoonacularRaw = await fetchSpoonacularRecipeById(numericId);
+  } catch (error: any) {
+    if (error?.response?.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+  const spoonRecipe = formatSpoonacularRecipe(spoonacularRaw);
+  if (!validateRecipe(spoonRecipe)) {
+    return null;
+  }
+
+  await upsertRecipe(mapRecipeToDbPayload(spoonRecipe));
+  return spoonRecipe;
+}
+
 /**
  * Gets a specific number of random recipes, optionally filtered by tags.
  * @param number 
@@ -157,9 +222,7 @@ export async function searchRecipes(params: SearchQueryParams = {}): Promise<{ t
  * @returns recipe object
  */
 export async function getRecipe(id: string): Promise<Recipe | null> {
-  const raw = await fetchRecipeById(id);
-  const formatted = formatRecipe(raw);
-  return validateRecipe(formatted) ? formatted : null;
+  return await ensureRecipeAvailable(id);
 }
 
 /**
@@ -168,16 +231,11 @@ export async function getRecipe(id: string): Promise<Recipe | null> {
  * @returns steps array
  */
 export async function getRecipeSteps(id: string): Promise<string[]> {
-  const recipe = await fetchRecipeById(id);
-
-  if (Array.isArray(recipe.instructions)) {
-    return recipe.instructions.map((step: InstructionStep) => step.step);
+  const recipe = await ensureRecipeAvailable(id);
+  if (!recipe) {
+    return [];
   }
-
-  return (recipe.instructions as unknown as string)
-    .split(/\n/)
-    .map((step: string) => step.trim())
-    .filter((step: string) => step.length > 0);
+  return recipe.instructions.map((step: InstructionStep) => step.step);
 }
 
 /**
@@ -197,6 +255,10 @@ export async function getUserFavorites(userId: string): Promise<Recipe[]> {
  * @param recipeId 
  */
 export async function addFavorite(userId: string, recipeId: string) {
+  const recipe = await ensureRecipeAvailable(recipeId);
+  if (!recipe) {
+    throw new RecipeNotFoundError();
+  }
   return await addFavoriteDb(userId, recipeId);
 }
 
