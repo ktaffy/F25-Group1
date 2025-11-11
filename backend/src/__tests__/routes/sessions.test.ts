@@ -7,7 +7,7 @@ app.use(express.json());
 app.use('/sessions', sessionsRouter);
 
 describe('Sessions routes (integration)', () => {
-<<<<<<< HEAD
+
   // === Create session ===
   it('POST /sessions with valid body should respond with 201 or 500', async () => {
     const payload = {
@@ -74,7 +74,7 @@ describe('Sessions routes (integration)', () => {
     const res = await request(app).delete('/sessions/test123');
     expect([200, 404, 500]).toContain(res.status);
   });
-=======
+
     // === Create Session ===
     it('POST /sessions — should create a session', async () => {
         const res = await request(app)
@@ -139,5 +139,5 @@ describe('Sessions routes (integration)', () => {
         const res = await request(app).delete('/sessions/123');
         expect([200, 404, 500]).toContain(res.status);
     });
->>>>>>> df18ba32a6e8f4a1e1d90810323fdd75373b6b6e
+
 });

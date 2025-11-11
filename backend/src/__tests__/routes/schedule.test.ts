@@ -7,7 +7,7 @@ app.use(express.json());
 app.use('/schedule', scheduleRouter);
 
 describe('Schedule routes (integration)', () => {
-<<<<<<< HEAD
+
   it('POST /schedule with valid recipeIds should respond with 200 or 500', async () => {
     const res = await request(app)
       .post('/schedule')
@@ -27,7 +27,7 @@ describe('Schedule routes (integration)', () => {
       .send({ recipeIds: 'not-an-array' });
     expect([400, 500]).toContain(res.status);
   });
-=======
+
     it('POST /schedule — should handle schedule creation', async () => {
         const res = await request(app)
             .post('/schedule')
@@ -44,5 +44,5 @@ describe('Schedule routes (integration)', () => {
             .send({}); // missing recipeIds
         expect([400, 500]).toContain(res.status);
     });
->>>>>>> df18ba32a6e8f4a1e1d90810323fdd75373b6b6e
+
 });
