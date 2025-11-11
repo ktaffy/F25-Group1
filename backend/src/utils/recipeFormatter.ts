@@ -6,17 +6,38 @@ import type { Recipe, Ingredient, InstructionStep } from "../types/recipeTypes.j
  * @returns A cleaned Recipe object.
  */
 export function formatRecipe(raw: any): Recipe {
-  const ingredients: Ingredient[] = (raw.ingredients || []).map((ing: any) => ({
-    id: ing.id || 0,
-    name: ing.name,
-    amount: ing.amount,
-    unit: ing.unit,
-    original: ing.original,
-    image: ing.image || '',
+  const ingredientsSource = Array.isArray(raw.ingredients)
+    ? raw.ingredients
+    : typeof raw.ingredients === "string"
+      ? raw.ingredients
+          .split(/\n/)
+          .map((line: string) => line.trim())
+          .filter(Boolean)
+          .map((line: string, index: number) => ({
+            id: index,
+            name: line,
+            amount: 0,
+            unit: "",
+            original: line,
+          }))
+      : [];
+
+  const ingredients: Ingredient[] = ingredientsSource.map((ing: any, idx: number) => ({
+    id: ing.id ?? idx,
+    name: ing.name ?? ing.original ?? "",
+    amount: ing.amount ?? 0,
+    unit: ing.unit ?? "",
+    original: ing.original ?? "",
+    image: ing.image || "",
   }));
 
   let instructions: InstructionStep[] = [];
-  if (raw.instructions) {
+  if (Array.isArray(raw.instructions)) {
+    instructions = raw.instructions.map((step: any, index: number) => ({
+      number: step.number ?? index + 1,
+      step: typeof step === "string" ? step : step.step ?? "",
+    }));
+  } else if (typeof raw.instructions === "string") {
     const steps = raw.instructions.split('\n').filter((s: string) => s.trim());
     instructions = steps.map((step: string, index: number) => ({
       number: index + 1,
