@@ -5,6 +5,7 @@ import LandingPage from './pages/LandingPage'
 import PlanPage from './pages/PlanPage'
 import FavoritesPage from './pages/FavoritesPage'
 import CookingPage from './pages/CookingPage'
+import SchedulePreviewPage from './pages/SchedulePreviewPage'
 import CreateRecipePage from './pages/CreateRecipePage'
 import { fetchUserFavorites } from './api'
 import './App.css'
@@ -18,7 +19,7 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
-type Page = 'landing' | 'favorites' | 'plan' | 'cooking' | 'createRecipe'
+type Page = 'landing' | 'favorites' | 'plan' | 'cooking' | 'createRecipe' | 'schedulePreview'
 
 interface Recipe {
   id: number
@@ -32,6 +33,7 @@ interface Recipe {
 }
 
 interface Schedule {
+  previewId?: string
   items: Array<{
     recipeId: string
     recipeName: string
@@ -160,6 +162,13 @@ function App() {
             setCart={setCart}
             setCurrentPage={setCurrentPage}
             setCookingSchedule={setCookingSchedule}
+          />
+        )
+      case 'schedulePreview':
+        return (
+          <SchedulePreviewPage
+            schedule={cookingSchedule}
+            setCurrentPage={setCurrentPage}
           />
         )
       case 'cooking':

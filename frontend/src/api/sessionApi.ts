@@ -11,13 +11,20 @@ function withStatusError(response: Response, message: string): never {
     throw error
 }
 
-export async function createSession(schedule: any): Promise<string> {
+type SchedulePayload = {
+    previewId?: string
+    items?: any[]
+    totalDurationSec?: number
+}
+
+export async function createSession(schedule: SchedulePayload): Promise<string> {
+    const payload = schedule.previewId ? { previewId: schedule.previewId } : schedule
     const response = await fetch(`${API_BASE_URL}/sessions`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(schedule),
+        body: JSON.stringify(payload),
     });
     
     if (!response.ok) {

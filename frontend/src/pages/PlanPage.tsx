@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { generateSchedule } from '../api'
 import './PlanPage.css'
 
-type Page = 'landing' | 'plan' | 'cooking'
+type Page = 'landing' | 'plan' | 'cooking' | 'schedulePreview'
 
 interface Recipe {
     id: number
@@ -12,6 +12,7 @@ interface Recipe {
 }
 
 interface Schedule {
+    previewId?: string
     items: Array<{
         recipeId: string
         recipeName: string
@@ -32,25 +33,25 @@ interface PlanPageProps {
 }
 
 function PlanPage({ cart, setCart, setCurrentPage, setCookingSchedule }: PlanPageProps) {
-    const [loading, setLoading] = useState(false)
+    const [loadingAction, setLoadingAction] = useState<null | 'begin' | 'preview'>(null)
 
     const removeFromCart = (recipeId: number) => {
         setCart(cart.filter(item => item.id !== recipeId))
     }
 
-    const beginCooking = async () => {
+    const loadSchedule = async (nextPage: 'cooking' | 'schedulePreview') => {
         if (cart.length === 0) return
 
-        setLoading(true)
+        setLoadingAction(nextPage === 'cooking' ? 'begin' : 'preview')
         try {
             const recipeIds = cart.map(recipe => recipe.id)
             const schedule = await generateSchedule(recipeIds as any)
             setCookingSchedule(schedule)
-            setCurrentPage('cooking')
+            setCurrentPage(nextPage)
         } catch (error) {
             console.error('Error generating schedule:', error)
         } finally {
-            setLoading(false)
+            setLoadingAction(null)
         }
     }
 
@@ -100,20 +101,37 @@ function PlanPage({ cart, setCart, setCurrentPage, setCookingSchedule }: PlanPag
                             </p>
                         </div>
 
-                        <button
-                            onClick={beginCooking}
-                            disabled={loading}
-                            className="begin-cooking-btn"
-                        >
-                            {loading ? (
-                                <>
-                                    <div className="spinner"></div>
-                                    Generating Schedule...
-                                </>
-                            ) : (
-                                'Begin Cooking'
-                            )}
-                        </button>
+                        <div className="cart-action-buttons">
+                            <button
+                                onClick={() => loadSchedule('schedulePreview')}
+                                disabled={loadingAction !== null}
+                                className="preview-schedule-btn"
+                            >
+                                {loadingAction === 'preview' ? (
+                                    <>
+                                        <div className="spinner"></div>
+                                        Building Preview...
+                                    </>
+                                ) : (
+                                    'Preview Schedule'
+                                )}
+                            </button>
+
+                            <button
+                                onClick={() => loadSchedule('cooking')}
+                                disabled={loadingAction !== null}
+                                className="begin-cooking-btn"
+                            >
+                                {loadingAction === 'begin' ? (
+                                    <>
+                                        <div className="spinner"></div>
+                                        Generating Schedule...
+                                    </>
+                                ) : (
+                                    'Begin Cooking'
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

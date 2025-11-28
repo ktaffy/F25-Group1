@@ -24,6 +24,7 @@ interface CookingStep {
 }
 
 interface Schedule {
+    previewId?: string
     items: CookingStep[]
     totalDurationSec: number
 }

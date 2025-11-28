@@ -4,7 +4,7 @@ import * as sessionApi from '../api/sessionApi'
 import type { SessionState } from '../types/sessionTypes'
 import './CookingPage.css'
 
-type Page = 'landing' | 'plan' | 'cooking'
+type Page = 'landing' | 'plan' | 'cooking' | 'schedulePreview'
 
 interface CookingStep {
     recipeId: string
@@ -17,6 +17,7 @@ interface CookingStep {
 }
 
 interface Schedule {
+    previewId?: string
     items: CookingStep[]
     totalDurationSec: number
 }
