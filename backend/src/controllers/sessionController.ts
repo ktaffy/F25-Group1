@@ -5,13 +5,24 @@ import {
 import { snapshot, skipForegroundNow } from "../services/timelineEngine.js";
 import type { ScheduleResult } from "../types/scheduleTypes.js";
 import { badRequest, notFound, conflict } from "../utils/respond.js";
+import { getPreviewById } from "../services/schedulePreviewService.js";
 
 export function createSessionHandler(req: Request, res: Response) {
-    const body = req.body as ScheduleResult;
-    if (!body?.items || !Array.isArray(body.items)) {
+    const body = req.body as ScheduleResult & { previewId?: string };
+    let schedule: ScheduleResult | undefined;
+
+    if (body.previewId) {
+        schedule = getPreviewById(body.previewId);
+        if (!schedule) {
+            return notFound(res, "Schedule preview not found");
+        }
+    } else if (body?.items && Array.isArray(body.items)) {
+        schedule = body;
+    } else {
         return badRequest(res, "Invalid schedule payload.");
     }
-    const s = createSession(body);
+
+    const s = createSession(schedule);
     return res
         .status(201)
         .json({ id: s.id, status: s.status, totalDurationSec: s.schedule.totalDurationSec });

@@ -22,8 +22,13 @@ const router = Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [items, totalDurationSec]
+ *             oneOf:
+ *               - required: [previewId]
+ *               - required: [items, totalDurationSec]
  *             properties:
+ *               previewId:
+ *                 type: string
+ *                 description: Cached preview id returned by /schedule
  *               items:
  *                 type: array
  *                 items:
