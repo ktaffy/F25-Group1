@@ -1,6 +1,7 @@
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import * as sessionApi from '../api/sessionApi'
+import { fetchRecipeDetails } from '../api'
 import type { SessionState } from '../types/sessionTypes'
 import './CookingPage.css'
 
@@ -30,6 +31,38 @@ interface CookingPageProps {
 
 type ApiError = Error & { status?: number }
 
+interface Ingredient {
+    name: string
+    amount?: number
+    unit?: string
+    original?: string
+}
+
+interface RecipeIngredientGroup {
+    recipeId: string
+    recipeName: string
+    items: string[]
+}
+
+const MATERIAL_LIBRARY = [
+    { keyword: 'oven', label: 'Oven-safe dish or oven' },
+    { keyword: 'skillet', label: 'Skillet or frying pan' },
+    { keyword: 'pan', label: 'Saucepan' },
+    { keyword: 'pot', label: 'Large pot' },
+    { keyword: 'baking sheet', label: 'Baking sheet or tray' },
+    { keyword: 'knife', label: "Chef's knife" },
+    { keyword: 'cutting board', label: 'Cutting board' },
+    { keyword: 'mixing bowl', label: 'Mixing bowl' },
+    { keyword: 'whisk', label: 'Whisk' },
+    { keyword: 'spatula', label: 'Spatula' },
+    { keyword: 'tongs', label: 'Tongs' },
+    { keyword: 'foil', label: 'Foil or parchment' },
+    { keyword: 'measuring cup', label: 'Measuring cups' },
+    { keyword: 'measuring spoon', label: 'Measuring spoons' },
+    { keyword: 'colander', label: 'Colander / strainer' },
+    { keyword: 'blender', label: 'Blender or food processor' }
+] as const
+
 function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
     const [sessionId, setSessionId] = useState<string | null>(null)
     const [sessionState, setSessionState] = useState<SessionState | null>(null)
@@ -38,6 +71,86 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
     const [viewStepIndex, setViewStepIndex] = useState<number | null>(null) // for local prev/next
     const [elapsed, setElapsed] = useState<number>(0)
     const timerRef = useRef<NodeJS.Timeout | null>(null)
+    const [ingredientsByRecipe, setIngredientsByRecipe] = useState<RecipeIngredientGroup[]>([])
+    const [loadingIngredients, setLoadingIngredients] = useState(false)
+
+    const materials = useMemo(() => {
+        if (!schedule) return []
+        const texts = schedule.items.map(item => `${item.recipeName} ${item.text}`.toLowerCase())
+        const found: string[] = []
+
+        MATERIAL_LIBRARY.forEach(entry => {
+            if (texts.some(text => text.includes(entry.keyword)) && !found.includes(entry.label)) {
+                found.push(entry.label)
+            }
+        })
+
+        return found
+    }, [schedule])
+
+    useEffect(() => {
+        let cancelled = false
+        const loadIngredients = async () => {
+            if (!schedule) return
+            setLoadingIngredients(true)
+            try {
+                const recipeIds = Array.from(new Set(schedule.items.map(item => item.recipeId)))
+                const details = await Promise.all(
+                    recipeIds.map(async id => {
+                        try {
+                            return await fetchRecipeDetails(id)
+                        } catch (err) {
+                            console.error('Error loading recipe details', err)
+                            return null
+                        }
+                    })
+                )
+                if (cancelled) return
+
+                const grouped: RecipeIngredientGroup[] = details
+                    .map((detail, index) => {
+                        if (!detail) return null
+                        const recipeId = recipeIds[index]
+                        const recipeName =
+                            detail.title ||
+                            schedule.items.find(item => item.recipeId === recipeId)?.recipeName ||
+                            'Recipe'
+
+                        const items = Array.isArray((detail as any).ingredients)
+                            ? (detail as any).ingredients
+                                  .map((ing: Ingredient) => {
+                                      if (ing.original) return ing.original
+                                      const parts = [
+                                          Number.isFinite(ing.amount) ? ing.amount : '',
+                                          ing.unit,
+                                          ing.name
+                                      ]
+                                      return parts
+                                          .map(part => (typeof part === 'number' ? part.toString() : (part || '').trim()))
+                                          .filter(Boolean)
+                                          .join(' ')
+                                  })
+                                  .filter(Boolean)
+                            : []
+
+                        return {
+                            recipeId: recipeId.toString(),
+                            recipeName,
+                            items
+                        }
+                    })
+                    .filter(Boolean) as RecipeIngredientGroup[]
+
+                setIngredientsByRecipe(grouped)
+            } finally {
+                if (!cancelled) setLoadingIngredients(false)
+            }
+        }
+        loadIngredients()
+        return () => {
+            cancelled = true
+        }
+    }, [schedule])
 
     const createNewSession = useCallback(async () => {
         if (!schedule) return null
@@ -285,172 +398,215 @@ function CookingPage({ schedule, setCurrentPage }: CookingPageProps) {
 
     return (
         <div className="cooking-page">
-            <div className="cooking-header">
-                <h1 className="cooking-title">Cooking in Progress</h1>
-                <div className="overall-progress">
-                    <div className="progress-bar">
-                        <div className="progress-fill" style={{ width: `${progress}%` }}></div>
-                    </div>
-                    <p className="progress-text">
-                        <span>Time Elapsed: {formatDuration(safeElapsed)}</span>
-                        <span>Total: {formatDuration(schedule.totalDurationSec)}</span>
-                    </p>
-                </div>
-            </div>
-
-            {currentStep && (
-                <div className="current-step-container">
-                    <div className="step-header">
-                        <h2 className="recipe-name">{currentStep.recipeName}</h2>
-                        <div className={`attention-badge ${currentStep.attention}`}>
-                            {currentStep.attention === 'foreground' ? '👨‍🍳 Active' : '⏰ Passive'}
+            <div className="cooking-layout">
+                <div className="cooking-main">
+                    <div className="cooking-header">
+                        <h1 className="cooking-title">Cooking in Progress</h1>
+                        <div className="overall-progress">
+                            <div className="progress-bar">
+                                <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+                            </div>
+                            <p className="progress-text">
+                                <span>Time Elapsed: {formatDuration(safeElapsed)}</span>
+                                <span>Total: {formatDuration(schedule.totalDurationSec)}</span>
+                            </p>
                         </div>
                     </div>
 
-                    <div className="step-content">
-                        <div className="step-number">Step {currentStep.stepIndex + 1}</div>
-                        <p className="step-instruction">{currentStep.text}</p>
-
-                        <div className="timer-section">
-                            <div className="timer-info">
-                                <span className="duration">Time Remaining: {formatDuration(currentStepRemaining)}</span>
-                                <span className="timing">
-                                    {formatDuration(currentStep.startSec)} - {formatDuration(currentStep.endSec)}
-                                </span>
+                    {currentStep && (
+                        <div className="current-step-container">
+                            <div className="step-header">
+                                <h2 className="recipe-name">{currentStep.recipeName}</h2>
+                                <div className={`attention-badge ${currentStep.attention}`}>
+                                    {currentStep.attention === 'foreground' ? '👨‍🍳 Active' : '⏰ Passive'}
+                                </div>
                             </div>
 
-                            <div className="timer-controls">
-                                {sessionState.session.status === 'running' ? (
-                                    <button
-                                        onClick={async () => {
-                                            await handlePause();
-                                            const state = await sessionApi.getSessionState(sessionId!);
-                                            setSessionState(state);
-                                            setElapsed(state.elapsedSec);
-                                        }}
-                                        className="timer-btn pause"
-                                    >
-                                        Pause
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={async () => {
-                                            await handleStart();
-                                            const state = await sessionApi.getSessionState(sessionId!);
-                                            setSessionState(state);
-                                            setElapsed(state.elapsedSec);
-                                        }}
-                                        className="timer-btn play"
-                                    >
-                                        {sessionState.session.status === 'idle' ? 'Start' : 'Resume'}
-                                    </button>
-                                )}
+                            <div className="step-content">
+                                <div className="step-number">Step {currentStep.stepIndex + 1}</div>
+                                <p className="step-instruction">{currentStep.text}</p>
 
-                                {sessionState.session.status === 'running' && (
-                                    <>
-                                        {showPrevButton && (
+                                <div className="timer-section">
+                                    <div className="timer-info">
+                                        <span className="duration">Time Remaining: {formatDuration(currentStepRemaining)}</span>
+                                        <span className="timing">
+                                            {formatDuration(currentStep.startSec)} - {formatDuration(currentStep.endSec)}
+                                        </span>
+                                    </div>
+
+                                    <div className="timer-controls">
+                                        {sessionState.session.status === 'running' ? (
                                             <button
-                                                onClick={handlePrev}
-                                                className="timer-btn skip"
+                                                onClick={async () => {
+                                                    await handlePause();
+                                                    const state = await sessionApi.getSessionState(sessionId!);
+                                                    setSessionState(state);
+                                                    setElapsed(state.elapsedSec);
+                                                }}
+                                                className="timer-btn pause"
                                             >
-                                                ← Previous
+                                                Pause
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={async () => {
+                                                    await handleStart();
+                                                    const state = await sessionApi.getSessionState(sessionId!);
+                                                    setSessionState(state);
+                                                    setElapsed(state.elapsedSec);
+                                                }}
+                                                className="timer-btn play"
+                                            >
+                                                {sessionState.session.status === 'idle' ? 'Start' : 'Resume'}
                                             </button>
                                         )}
-                                        {viewStepIndex === null && (
+
+                                        {sessionState.session.status === 'running' && (
+                                            <>
+                                                {showPrevButton && (
+                                                    <button
+                                                        onClick={handlePrev}
+                                                        className="timer-btn skip"
+                                                    >
+                                                        ← Previous
+                                                    </button>
+                                                )}
+                                                {viewStepIndex === null && (
+                                                    <button
+                                                        onClick={handleNext}
+                                                        className="timer-btn skip"
+                                                    >
+                                                        Next →
+                                                    </button>
+                                                )}
+                                                {viewStepIndex !== null && (
+                                                    <button
+                                                        onClick={() => setViewStepIndex(null)}
+                                                        className="timer-btn skip"
+                                                        title="Return to the current step"
+                                                    >
+                                                        Current Step
+                                                    </button>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {!currentStep && nextStep && (
+                        <div className="current-step-container waiting-state">
+                            <div className="step-header">
+                                <h2 className="recipe-name">{nextStep.recipeName}</h2>
+                                <div className="attention-badge foreground">
+                                    Waiting for next active step
+                                </div>
+                            </div>
+                            <div className="step-content">
+                                <div className="step-number">Next Step {nextStep.stepIndex + 1}</div>
+                                <p className="step-instruction">
+                                    {nextStep.text}
+                                </p>
+                                <div className="timer-section">
+                                    <div className="timer-info">
+                                        <span className="duration">
+                                            Starts in: {formatDuration(nextStepStartsIn)}
+                                        </span>
+                                    </div>
+                                    {sessionState.session.status === 'running' && (
+                                        <div className="timer-controls">
                                             <button
                                                 onClick={handleNext}
                                                 className="timer-btn skip"
                                             >
-                                                Next →
+                                                Skip Wait →
                                             </button>
-                                        )}
-                                        {viewStepIndex !== null && (
-                                            <button
-                                                onClick={() => setViewStepIndex(null)}
-                                                className="timer-btn skip"
-                                                title="Return to the current step"
-                                            >
-                                                Current Step
-                                            </button>
-                                        )}
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {!currentStep && nextStep && (
-                <div className="current-step-container waiting-state">
-                    <div className="step-header">
-                        <h2 className="recipe-name">{nextStep.recipeName}</h2>
-                        <div className="attention-badge foreground">
-                            Waiting for next active step
-                        </div>
-                    </div>
-                    <div className="step-content">
-                        <div className="step-number">Next Step {nextStep.stepIndex + 1}</div>
-                        <p className="step-instruction">
-                            {nextStep.text}
-                        </p>
-                        <div className="timer-section">
-                            <div className="timer-info">
-                                <span className="duration">
-                                    Starts in: {formatDuration(nextStepStartsIn)}
-                                </span>
-                            </div>
-                            {sessionState.session.status === 'running' && (
-                                <div className="timer-controls">
-                                    <button
-                                        onClick={handleNext}
-                                        className="timer-btn skip"
-                                    >
-                                        Skip Wait →
-                                    </button>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {backgroundSteps.length > 0 && (
-                <div className="background-steps">
-                    <h3>Background Steps</h3>
-                    {backgroundStepsWithRemaining.map((step) => (
-                        <div key={`${step.recipeId}-${step.stepIndex}`} className="background-step">
-                            <div className="step-info">
-                                <span className="recipe-name">{step.recipeName}</span>
-                                <span className="step-number">Step {step.stepIndex + 1}</span>
-                            </div>
-                            <p className="step-instruction">{step.text}</p>
-                            <div className="timer-info">
-                                <span className="remaining">Remaining: {formatDuration(step.liveRemaining)}</span>
                             </div>
                         </div>
-                    ))}
-                </div>
-            )}
+                    )}
 
-            {nextStep && (
-                <div className="next-step">
-                    <h3>Coming Up Next</h3>
-                    <div className="next-step-content">
-                        <div className="step-info">
-                            <span className="recipe-name">{nextStep.recipeName}</span>
-                            <span className="step-number">Step {nextStep.stepIndex + 1}</span>
+                    {backgroundSteps.length > 0 && (
+                        <div className="background-steps">
+                            <h3>Background Steps</h3>
+                            {backgroundStepsWithRemaining.map((step) => (
+                                <div key={`${step.recipeId}-${step.stepIndex}`} className="background-step">
+                                    <div className="step-info">
+                                        <span className="recipe-name">{step.recipeName}</span>
+                                        <span className="step-number">Step {step.stepIndex + 1}</span>
+                                    </div>
+                                    <p className="step-instruction">{step.text}</p>
+                                    <div className="timer-info">
+                                        <span className="remaining">Remaining: {formatDuration(step.liveRemaining)}</span>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                        <p className="step-instruction">{nextStep.text}</p>
-                        <span className="starts-in">Starts in: {formatDuration(nextStepStartsIn)}</span>
+                    )}
+
+                    {nextStep && (
+                        <div className="next-step">
+                            <h3>Coming Up Next</h3>
+                            <div className="next-step-content">
+                                <div className="step-info">
+                                    <span className="recipe-name">{nextStep.recipeName}</span>
+                                    <span className="step-number">Step {nextStep.stepIndex + 1}</span>
+                                </div>
+                                <p className="step-instruction">{nextStep.text}</p>
+                                <span className="starts-in">Starts in: {formatDuration(nextStepStartsIn)}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="navigation-controls">
+                        <button onClick={handleQuit} className="nav-btn finish">
+                            Quit
+                        </button>
                     </div>
                 </div>
-            )}
 
-            <div className="navigation-controls">
-                <button onClick={handleQuit} className="nav-btn finish">
-                    Quit
-                </button>
+                <aside className="materials-sidebar">
+                    <div className="sidebar-section">
+                        <p className="eyebrow">Materials</p>
+                        <h3>Tools & Gear</h3>
+                        {materials.length > 0 ? (
+                            <ul className="material-list">
+                                {materials.map(item => (
+                                    <li key={item}>{item}</li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="sidebar-empty">No special equipment detected. Basic kitchen tools should do it.</p>
+                        )}
+                    </div>
+
+                    <div className="sidebar-section">
+                        <p className="eyebrow">Ingredients</p>
+                        <h3>Shopping Checklist</h3>
+                        {loadingIngredients ? (
+                            <p className="sidebar-empty">Loading ingredients...</p>
+                        ) : ingredientsByRecipe.length > 0 ? (
+                            <div className="ingredient-groups">
+                                {ingredientsByRecipe.map(group => (
+                                    <div key={group.recipeId} className="ingredient-group">
+                                        <p className="ingredient-recipe">{group.recipeName}</p>
+                                        <ul className="ingredient-list">
+                                            {group.items.map((ing, idx) => (
+                                                <li key={`${group.recipeId}-${idx}`}>{ing}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="sidebar-empty">Ingredients will appear once the schedule loads.</p>
+                        )}
+                    </div>
+                </aside>
             </div>
         </div>
     )
