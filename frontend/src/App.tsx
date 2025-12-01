@@ -22,7 +22,7 @@ const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey)
 type Page = 'landing' | 'favorites' | 'plan' | 'cooking' | 'createRecipe' | 'schedulePreview' | 'profile'
 
 interface Recipe {
-  id: number
+  id: number | string
   title: string
   image: string
   readyInMinutes: number

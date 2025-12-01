@@ -90,12 +90,7 @@ function LandingPage({ cart, setCart, favorites, setFavorites, currentUserId }: 
             }
             
             const data = await searchRecipes(filters)
-            // Convert string IDs to numbers
-            const recipesWithNumericIds = data.map(recipe => ({
-                ...recipe,
-                id: typeof recipe.id === 'string' ? parseInt(recipe.id) : recipe.id
-            }))
-            setRecipes(recipesWithNumericIds)
+            setRecipes(data)
         } catch (error) {
             console.error('Error searching recipes:', error)
         } finally {
@@ -111,13 +106,8 @@ function LandingPage({ cart, setCart, favorites, setFavorites, currentUserId }: 
 
     const previewRecipe = async (recipe: Recipe) => {
         try {
-            // Convert number ID to string for API call
             const fullRecipe = await fetchRecipeDetails(String(recipe.id))
-            // Convert string ID back to number for state
-            setSelectedRecipe({
-                ...fullRecipe,
-                id: typeof fullRecipe.id === 'string' ? parseInt(fullRecipe.id) : fullRecipe.id
-            })
+            setSelectedRecipe(fullRecipe)
         } catch (error) {
             console.error('Error fetching recipe details:', error)
         }

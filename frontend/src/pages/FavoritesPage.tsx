@@ -5,7 +5,7 @@ import { removeFavorite as removeFavoriteApi } from '../api'
 type Page = 'landing' | 'favorites' | 'plan' | 'cooking'
 
 interface Recipe {
-    id: number
+    id: number | string
     title: string
     image: string
     readyInMinutes: number
@@ -21,7 +21,7 @@ interface FavoritesPageProps {
 }
 
 function FavoritesPage({ favorites, setFavorites, cart, setCart, setCurrentPage, currentUserId }: FavoritesPageProps) {
-    const removeFromFavorites = async (recipeId: number) => {
+    const removeFromFavorites = async (recipeId: number | string) => {
         if (!currentUserId) return
         const previousFavorites = [...favorites]
         setFavorites(prev => prev.filter(item => item.id !== recipeId))
