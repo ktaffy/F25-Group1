@@ -7,6 +7,7 @@ import CookingPage from './pages/CookingPage'
 import SchedulePreviewPage from './pages/SchedulePreviewPage'
 import CreateRecipePage from './pages/CreateRecipePage'
 import ProfilePage from './pages/ProfilePage'
+import MyRecipesPage from './pages/MyRecipesPage'
 import { fetchUserFavorites } from './api'
 import './App.css'
 
@@ -19,7 +20,7 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey)
 
-type Page = 'landing' | 'favorites' | 'plan' | 'cooking' | 'createRecipe' | 'schedulePreview' | 'profile'
+type Page = 'landing' | 'favorites' | 'plan' | 'cooking' | 'createRecipe' | 'schedulePreview' | 'profile' | 'myRecipes'
 
 interface Recipe {
   id: number | string
@@ -225,6 +226,13 @@ function App() {
             setCurrentPage={setCurrentPage}
           />
         )
+      case 'myRecipes':
+        return (
+          <MyRecipesPage
+            userId={session?.user.id || ''}
+            setCurrentPage={setCurrentPage}
+          />
+          )
       default:
         return (
           <LandingPage
@@ -254,6 +262,12 @@ function App() {
               className={currentPage === 'favorites' ? 'nav-button active' : 'nav-button'}
             >
               ❤️ Favorites ({favorites.length})
+            </button>
+            <button
+              onClick={() => setCurrentPage('myRecipes')}
+              className={currentPage === 'myRecipes' ? 'nav-button active' : 'nav-button'}
+            >
+              📝 My Recipes
             </button>
             <button
               onClick={() => setCurrentPage('createRecipe')}

@@ -233,13 +233,18 @@ export const createRecipe = async (recipeData: {
 
 export const fetchUserRecipes = async (userId: string): Promise<Recipe[]> => {
     try {
-        const response = await fetch(`${API_BASE}/recipes/user?userId=${userId}`)
+        const response = await fetch(`${API_BASE}/recipes/search?createdBy=mine&userId=${userId}&limit=100`)
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
         }
 
         const data = await response.json()
+
+        if (data.items && Array.isArray(data.items)) {
+            return data.items
+        }
+
         return Array.isArray(data) ? data : []
     } catch (error) {
         console.error('Error fetching user recipes:', error)
@@ -347,4 +352,20 @@ export const removeFavorite = async (userId: string, recipeId: string | number):
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
     }
+}
+
+export const updateRecipe = async (userId: string, recipeId: string, updates: any): Promise<Recipe> => {
+    const response = await fetch(`${API_BASE}/recipes/${recipeId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, ...updates })
+    })
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return response.json()
 }
