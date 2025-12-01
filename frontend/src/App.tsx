@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
-import type { Session } from '@supabase/supabase-js'
+import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js'
 import LandingPage from './pages/LandingPage'
 import PlanPage from './pages/PlanPage'
 import FavoritesPage from './pages/FavoritesPage'
 import CookingPage from './pages/CookingPage'
 import SchedulePreviewPage from './pages/SchedulePreviewPage'
 import CreateRecipePage from './pages/CreateRecipePage'
+import ProfilePage from './pages/ProfilePage'
 import { fetchUserFavorites } from './api'
 import './App.css'
 
@@ -17,9 +17,9 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('missing Supabase env variables')
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey)
+const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey)
 
-type Page = 'landing' | 'favorites' | 'plan' | 'cooking' | 'createRecipe' | 'schedulePreview'
+type Page = 'landing' | 'favorites' | 'plan' | 'cooking' | 'createRecipe' | 'schedulePreview' | 'profile'
 
 interface Recipe {
   id: number
@@ -50,6 +50,7 @@ function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [username, setUsername] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -70,6 +71,17 @@ function App() {
 
     return () => subscription.unsubscribe()
   }, [])
+  // Ensure we always have the freshest user metadata (e.g., username updates)
+  useEffect(() => {
+    (async () => {
+      if (!session) return
+      const { data } = await supabase.auth.getUser()
+      if (data.user) {
+        setSession({ ...session, user: data.user })
+      }
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user.id])
 
   useEffect(() => {
     const userId = session?.user.id
@@ -109,7 +121,20 @@ function App() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password })
+        const trimmedUsername = username.trim()
+        if (!trimmedUsername) {
+          setMessage('Username is required')
+          setLoading(false)
+          return
+        }
+
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { username: trimmedUsername }
+          }
+        })
         if (error) throw error
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -124,6 +149,10 @@ function App() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
+    setSession(null)
+    setCart([])
+    setCookingSchedule(null)
+    setCurrentPage('landing')
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -131,6 +160,8 @@ function App() {
       handleAuth()
     }
   }
+
+  const displayName = session?.user.user_metadata?.username || session?.user.email || ''
 
   const renderPage = () => {
     switch (currentPage) {
@@ -185,6 +216,15 @@ function App() {
             userId={session?.user.id || ''}
           />
         )
+      case 'profile':
+        return (
+          <ProfilePage
+            supabase={supabase}
+            user={session!.user}
+            onUserUpdated={setSession}
+            setCurrentPage={setCurrentPage}
+          />
+        )
       default:
         return (
           <LandingPage
@@ -229,7 +269,12 @@ function App() {
             </button>
           </div>
           <div className="nav-right">
-            <span className="user-email">{session.user.email}</span>
+            <button
+              className="nav-button user-email"
+              onClick={() => setCurrentPage('profile')}
+            >
+              {displayName}
+            </button>
             <button onClick={handleSignOut} className="nav-button sign-out">
               Sign Out
             </button>
@@ -270,6 +315,22 @@ function App() {
             />
           </div>
 
+          {isSignUp && (
+            <div className="form-group">
+              <label className="form-label">
+                Username
+              </label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="form-input"
+                placeholder="Pick something unique"
+              />
+            </div>
+          )}
+
           <div className="form-group">
             <label className="form-label">
               Password
@@ -292,7 +353,12 @@ function App() {
 
           <button
             onClick={handleAuth}
-            disabled={loading || !email || !password}
+            disabled={
+              loading ||
+              !email ||
+              !password ||
+              (isSignUp && !username.trim())
+            }
             className="auth-button"
           >
             {loading ? (
