@@ -1,6 +1,11 @@
 import { useState } from 'react'
 import { createRecipe } from '../api'
+import { createClient } from '@supabase/supabase-js'
 import './CreateRecipePage.css'
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseKey = import.meta.env.VITE_SUPABASE_KEY
+const supabase = createClient(supabaseUrl, supabaseKey)
 
 type Page = 'landing' | 'favorites' | 'plan' | 'cooking' | 'createRecipe'
 
@@ -18,7 +23,8 @@ interface CreateRecipePageProps {
 
 function CreateRecipePage({ setCurrentPage, userId }: CreateRecipePageProps) {
     const [title, setTitle] = useState('')
-    const [image, setImage] = useState('')
+    const [imageFile, setImageFile] = useState<File | null>(null)
+    const [imagePreview, setImagePreview] = useState<string>('')
     const [servings, setServings] = useState<number>(4)
     const [readyInMinutes, setReadyInMinutes] = useState<number>(30)
     const [summary, setSummary] = useState('')
@@ -28,7 +34,62 @@ function CreateRecipePage({ setCurrentPage, userId }: CreateRecipePageProps) {
         { name: '', amount: 0, unit: '', original: '' }
     ])
     const [loading, setLoading] = useState(false)
+    const [uploadingImage, setUploadingImage] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please select an image file')
+                return
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                setError('Image size must be less than 5MB')
+                return
+            }
+
+            setImageFile(file)
+
+            const reader = new FileReader()
+            reader.onloadend = () => {
+                setImagePreview(reader.result as string)
+            }
+            reader.readAsDataURL(file)
+            setError(null)
+        }
+    }
+
+    const uploadImage = async (): Promise<string> => {
+        if (!imageFile) {
+            return 'https://via.placeholder.com/312x231'
+        }
+
+        setUploadingImage(true)
+        try {
+            const fileExt = imageFile.name.split('.').pop()
+            const fileName = `${userId}-${Date.now()}.${fileExt}`
+            const filePath = `${fileName}`
+
+            const { error: uploadError } = await supabase.storage
+                .from('recipe-images')
+                .upload(filePath, imageFile)
+
+            if (uploadError) throw uploadError
+
+            const { data } = supabase.storage
+                .from('recipe-images')
+                .getPublicUrl(filePath)
+
+            return data.publicUrl
+        } catch (err) {
+            console.error('Error uploading image:', err)
+            throw new Error('Failed to upload image')
+        } finally {
+            setUploadingImage(false)
+        }
+    }
 
     const addIngredient = () => {
         setIngredients([...ingredients, { name: '', amount: 0, unit: '', original: '' }])
@@ -42,6 +103,27 @@ function CreateRecipePage({ setCurrentPage, userId }: CreateRecipePageProps) {
         const updated = [...ingredients]
         updated[index] = { ...updated[index], [field]: value }
         setIngredients(updated)
+    }
+
+    const formatSummary = (text: string): string => {
+        if (!text.trim()) return ''
+
+        let formatted = text.trim()
+
+        if (servings) {
+            formatted = `This recipe serves <b>${servings}</b>. ` + formatted
+        }
+
+        if (readyInMinutes) {
+            const hours = Math.floor(readyInMinutes / 60)
+            const mins = readyInMinutes % 60
+            const timeStr = hours > 0
+                ? `${hours} hour${hours > 1 ? 's' : ''}${mins > 0 ? ` and ${mins} minutes` : ''}`
+                : `${mins} minutes`
+            formatted = formatted + ` From preparation to the plate, this recipe takes approximately <b>${timeStr}</b>.`
+        }
+
+        return formatted
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -63,15 +145,26 @@ function CreateRecipePage({ setCurrentPage, userId }: CreateRecipePageProps) {
 
         setLoading(true)
         try {
+            const imageUrl = await uploadImage()
+
+            const instructionSteps = instructions
+                .split('\n')
+                .map(step => step.trim())
+                .filter(step => step.length > 0)
+
+            const formattedInstructions = instructionSteps.length > 0
+                ? `<ol>${instructionSteps.map(step => `<li>${step}</li>`).join('')}</ol>`
+                : instructions.trim()
+
             const recipeData = {
                 userId,
                 title: title.trim(),
-                image: image.trim() || 'https://via.placeholder.com/312x231',
+                image: imageUrl,
                 servings,
                 ready_in_minutes: readyInMinutes,
-                summary: summary.trim(),
+                summary: formatSummary(summary),
                 ingredients: ingredients.filter(ing => ing.name.trim()),
-                instructions: instructions.trim(),
+                instructions: formattedInstructions,
                 dish_types: dishTypes
             }
 
@@ -127,15 +220,58 @@ function CreateRecipePage({ setCurrentPage, userId }: CreateRecipePageProps) {
                         />
                     </div>
 
+                    {/* NEW IMAGE UPLOAD SECTION */}
                     <div className="form-group">
-                        <label htmlFor="image">Image URL</label>
+                        <label htmlFor="image">Recipe Image</label>
                         <input
                             id="image"
-                            type="url"
-                            value={image}
-                            onChange={(e) => setImage(e.target.value)}
-                            placeholder="https://example.com/image.jpg"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                            style={{ display: 'none' }}
                         />
+                        <label
+                            htmlFor="image"
+                            className="image-upload-label"
+                            style={{
+                                display: 'block',
+                                padding: '3rem 2rem',
+                                border: '2px dashed #d1d5db',
+                                borderRadius: '12px',
+                                textAlign: 'center',
+                                cursor: 'pointer',
+                                backgroundColor: '#fafafa',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            {imagePreview ? (
+                                <div>
+                                    <img
+                                        src={imagePreview}
+                                        alt="Preview"
+                                        style={{
+                                            maxWidth: '300px',
+                                            maxHeight: '200px',
+                                            borderRadius: '8px',
+                                            marginBottom: '1rem'
+                                        }}
+                                    />
+                                    <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+                                        Click to change image
+                                    </p>
+                                </div>
+                            ) : (
+                                <div>
+                                    <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>📷</div>
+                                    <p style={{ color: '#6b7280', fontSize: '1rem', margin: 0 }}>
+                                        Click to upload an image
+                                    </p>
+                                    <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+                                        PNG, JPG up to 5MB
+                                    </p>
+                                </div>
+                            )}
+                        </label>
                     </div>
 
                     <div className="form-row">
@@ -270,10 +406,15 @@ function CreateRecipePage({ setCurrentPage, userId }: CreateRecipePageProps) {
                         className="submit-btn"
                         disabled={loading}
                     >
-                        {loading ? (
+                        {uploadingImage ? (
                             <>
-                                <div className="spinner"></div>
-                                Creating...
+                                <span className="spinner"></span>
+                                Uploading Image...
+                            </>
+                        ) : loading ? (
+                            <>
+                                <span className="spinner"></span>
+                                Creating Recipe...
                             </>
                         ) : (
                             'Create Recipe'
