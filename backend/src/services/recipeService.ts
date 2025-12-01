@@ -42,6 +42,8 @@ type SearchQueryParams = {
   cuisine?: string | string[];
   diet?: string | string[];
   type?: string | string[];
+  createdBy?: string | string[];
+  userId?: string | string[];
 };
 
 function firstParam(value?: string | string[]): string | undefined {
@@ -184,11 +186,17 @@ export async function searchRecipes(params: SearchQueryParams = {}): Promise<{ t
   const cuisine = firstParam(params.cuisine);
   const diet = firstParam(params.diet);
   const mealType = firstParam(params.type);
+  const createdByRaw = firstParam(params.createdBy);
+  const createdBy = createdByRaw === "mine" || createdByRaw === "others" || createdByRaw === "app"
+    ? createdByRaw
+    : undefined;
+  const userId = firstParam(params.userId);
   const limitParam = firstParam(params.number) ?? firstParam(params.limit);
   const pageSize = Number(limitParam) > 0 ? Number(limitParam) : 20;
   const hasAdvancedFilters = Boolean(cuisine || diet || mealType);
+  const userOnlyFilter = createdBy === "mine" || createdBy === "others";
 
-  if (hasAdvancedFilters) {
+  if (hasAdvancedFilters && !userOnlyFilter) {
     const spoonacularParams: Record<string, string | number> = {
       number: pageSize,
     };
@@ -207,7 +215,11 @@ export async function searchRecipes(params: SearchQueryParams = {}): Promise<{ t
     };
   }
 
-  const data = await fetchSupabaseSearchRecipes(searchTerm, pageSize);
+  const data = await fetchSupabaseSearchRecipes(searchTerm, pageSize, {
+    createdBy: createdBy,
+    userId: userId,
+    mealType: mealType,
+  });
   const items = data.map(formatRecipe).filter(validateRecipe);
 
   return {

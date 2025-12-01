@@ -76,14 +76,46 @@ export async function fetchRecipeById(id: string): Promise<Recipe | null> {
  * Search recipes by title
  * @param searchTerm - search query
  * @param limit - max results
+ * @param filters - optional creator/source filters
  * @returns matching recipes
 */
-export async function fetchSearchRecipes(searchTerm: string, limit = 20) {
-    const { data, error } = await supabase
+export async function fetchSearchRecipes(
+    searchTerm: string,
+    limit = 20,
+    filters?: {
+        createdBy?: 'mine' | 'others' | 'app',
+        userId?: string,
+        mealType?: string
+    }
+) {
+    let query = supabase
         .from('recipes')
         .select('*')
         .ilike('title', `%${searchTerm}%`)
         .limit(limit);
+
+    if (filters?.mealType) {
+        query = query.contains('dish_types', [filters.mealType]);
+    }
+
+    if (filters?.createdBy === 'mine') {
+        if (filters.userId) {
+            query = query
+                .eq('source', 'user')
+                .eq('user_id', filters.userId);
+        } else {
+            query = query.eq('source', 'user');
+        }
+    } else if (filters?.createdBy === 'others') {
+        query = query.eq('source', 'user');
+        if (filters.userId) {
+            query = query.neq('user_id', filters.userId);
+        }
+    } else if (filters?.createdBy === 'app') {
+        query = query.eq('source', 'spoonacular');
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
     return data;

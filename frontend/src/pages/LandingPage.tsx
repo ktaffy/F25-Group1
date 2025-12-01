@@ -34,6 +34,7 @@ function LandingPage({ cart, setCart, favorites, setFavorites, currentUserId }: 
     const [cuisine, setCuisine] = useState('')
     const [diet, setDiet] = useState('')
     const [mealType, setMealType] = useState('')
+    const [createdBy, setCreatedBy] = useState('')
 
     useEffect(() => {
         loadRandomRecipes()
@@ -53,6 +54,7 @@ function LandingPage({ cart, setCart, favorites, setFavorites, currentUserId }: 
             setCuisine('')
             setDiet('')
             setMealType('')
+            setCreatedBy('')
         } catch (error) {
             console.error('Error loading recipes:', error)
         } finally {
@@ -80,10 +82,17 @@ function LandingPage({ cart, setCart, favorites, setFavorites, currentUserId }: 
             const cleanedCuisine = sanitizeFilterValue(cuisine)
             const cleanedDiet = sanitizeFilterValue(diet)
             const cleanedMealType = sanitizeFilterValue(mealType)
+            const cleanedCreatedBy = sanitizeFilterValue(createdBy)
 
             if (cleanedCuisine) filters.cuisine = cleanedCuisine
             if (cleanedDiet) filters.diet = cleanedDiet
             if (cleanedMealType) filters.type = cleanedMealType
+            if (cleanedCreatedBy) {
+                filters.createdBy = cleanedCreatedBy
+                if ((cleanedCreatedBy === 'mine' || cleanedCreatedBy === 'others') && currentUserId) {
+                    filters.userId = currentUserId
+                }
+            }
             
             const data = await searchRecipes(filters)
             // Convert string IDs to numbers
@@ -406,10 +415,36 @@ function LandingPage({ cart, setCart, favorites, setFavorites, currentUserId }: 
                                     <option value="drink">Drink</option>
                                 </select>
                             </div>
+
+                            {/* Recipe Source */}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                                    Created By
+                                </label>
+                                <select
+                                    value={createdBy}
+                                    onChange={(e) => setCreatedBy(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.5rem',
+                                        fontSize: '0.875rem',
+                                        border: '1px solid #e5e7eb',
+                                        borderRadius: '6px',
+                                        backgroundColor: 'white',
+                                        color: createdBy ? '#111827' : '#9ca3af'
+                                    }}
+                                >
+                                    <option value="" disabled hidden>Select Creator</option>
+                                    <option value="">Any Creator</option>
+                                    <option value="mine" disabled={!currentUserId}>Your Recipes</option>
+                                    <option value="others">Other Users</option>
+                                    <option value="app">Mise en Place Picks</option>
+                                </select>
+                            </div>
                         </div>
 
                         {/* Active Filters Display */}
-                        {(cuisine || diet || mealType) && (
+                        {(cuisine || diet || mealType || createdBy) && (
                             <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                                 <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>Active filters:</span>
                                 {cuisine && (
@@ -484,6 +519,33 @@ function LandingPage({ cart, setCart, favorites, setFavorites, currentUserId }: 
                                                 background: 'none',
                                                 border: 'none',
                                                 color: '#92400e',
+                                                cursor: 'pointer',
+                                                padding: 0,
+                                                fontSize: '1rem'
+                                            }}
+                                        >
+                                            ×
+                                        </button>
+                                    </span>
+                                )}
+                                {createdBy && (
+                                    <span style={{
+                                        padding: '0.25rem 0.75rem',
+                                        fontSize: '0.75rem',
+                                        backgroundColor: '#ff7a7aff',
+                                        color: '#5f2727ff',
+                                        borderRadius: '9999px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem'
+                                    }}>
+                                        Created By: {createdBy}
+                                        <button
+                                            onClick={() => setCreatedBy('')}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                color: '#5f2727ff',
                                                 cursor: 'pointer',
                                                 padding: 0,
                                                 fontSize: '1rem'
