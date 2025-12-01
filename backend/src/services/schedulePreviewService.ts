@@ -5,7 +5,7 @@ import { createScheduleFromIds } from "./scheduleService.js";
 interface SchedulePreview {
   id: string;
   recipeKey: string;
-  recipeIds: number[];
+  recipeIds: string[];
   schedule: ScheduleResult;
   createdAt: number;
 }
@@ -13,20 +13,16 @@ interface SchedulePreview {
 const previewsByKey = new Map<string, SchedulePreview>();
 const previewsById = new Map<string, SchedulePreview>();
 
-function normalizeRecipeIds(recipeIds: number[]): number[] {
-  const numericIds = recipeIds
-    .map(Number)
-    .filter((id) => Number.isFinite(id));
-
-  const unique = Array.from(new Set(numericIds));
-  return unique.sort((a, b) => a - b);
+function normalizeRecipeIds(recipeIds: string[]): string[] {
+  const unique = Array.from(new Set(recipeIds));
+  return unique.sort();
 }
 
 /**
  * Generate or reuse a cached schedule preview for the given recipe ids.
  * Caches previews locally to avoid regenerating schedules for the same set.
  */
-export async function getOrCreatePreview(recipeIds: number[]): Promise<{ previewId: string; schedule: ScheduleResult }> {
+export async function getOrCreatePreview(recipeIds: string[]): Promise<{ previewId: string; schedule: ScheduleResult }> {
   const normalized = normalizeRecipeIds(recipeIds);
   if (normalized.length === 0) {
     throw new Error("No valid recipe ids provided");

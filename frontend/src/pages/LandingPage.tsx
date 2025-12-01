@@ -4,7 +4,7 @@ import { fetchRandomRecipes, fetchRecipeDetails, searchRecipes, addFavorite as a
 import './LandingPage.css'
 import RecipeReviews from './RecipeReviews'
 interface Recipe {
-    id: number
+    id: number | string
     title: string
     image: string
     readyInMinutes: number
@@ -44,12 +44,7 @@ function LandingPage({ cart, setCart, favorites, setFavorites, currentUserId }: 
         setLoading(true)
         try {
             const data = await fetchRandomRecipes(resultsPerPage)
-            // Convert string IDs to numbers
-            const recipesWithNumericIds = data.map(recipe => ({
-                ...recipe,
-                id: typeof recipe.id === 'string' ? parseInt(recipe.id) : recipe.id
-            }))
-            setRecipes(recipesWithNumericIds)
+            setRecipes(data)
             setSearchQuery('')
             setCuisine('')
             setDiet('')

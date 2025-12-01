@@ -5,7 +5,7 @@ import './PlanPage.css'
 type Page = 'landing' | 'plan' | 'cooking' | 'schedulePreview'
 
 interface Recipe {
-    id: number
+    id: number | string
     title: string
     image: string
     readyInMinutes: number
@@ -35,7 +35,7 @@ interface PlanPageProps {
 function PlanPage({ cart, setCart, setCurrentPage, setCookingSchedule }: PlanPageProps) {
     const [loadingAction, setLoadingAction] = useState<null | 'begin' | 'preview'>(null)
 
-    const removeFromCart = (recipeId: number) => {
+    const removeFromCart = (recipeId: number | string) => {
         setCart(cart.filter(item => item.id !== recipeId))
     }
 

@@ -1,6 +1,7 @@
 import type { ScheduleResult } from "../types/scheduleTypes.js";
 import { generateSchedule } from "../clients/openaiClient.js";
 import { fetchRecipeById, fetchSteps } from "../clients/spoonacularClient.js";
+import { fetchRecipeByIdForSchedule, fetchStepsFromDb } from "../clients/supabaseClient.js";
 
 /**
  * Create a cooking schedule from Spoonacular recipe IDs.
@@ -10,12 +11,12 @@ import { fetchRecipeById, fetchSteps } from "../clients/spoonacularClient.js";
  * @param recipeIds 
  * @returns schedule in specified format
  */
-export async function createScheduleFromIds(recipeIds: number[]): Promise<ScheduleResult> {
+export async function createScheduleFromIds(recipeIds: string[]): Promise<ScheduleResult> {
   const recipes: { recipeId: string; recipeName: string; rawSteps: string[] }[] = [];
 
   for (const id of recipeIds) {
-    const recipe = await fetchRecipeById(id);
-    const analyzed = await fetchSteps(id);
+    const recipe = await fetchRecipeByIdForSchedule(id);
+    const analyzed = await fetchStepsFromDb(id);
 
     const rawSteps: string[] = [];
     for (const instr of analyzed) {

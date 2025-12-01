@@ -9,12 +9,15 @@ export async function createSchedule(req: Request, res: Response, next: NextFunc
       return badRequest(res, "recipeIds[] required");
     }
 
-    const numericIds = recipeIds.map(Number).filter((id: number) => Number.isFinite(id));
-    if (numericIds.length === 0) {
+    const stringIds = recipeIds
+      .map((id: any) => String(id).trim())
+      .filter((id: string) => id.length > 0);
+
+    if (stringIds.length === 0) {
       return badRequest(res, "At least one valid recipeId is required");
     }
 
-    const { previewId, schedule } = await getOrCreatePreview(numericIds);
+    const { previewId, schedule } = await getOrCreatePreview(stringIds);
     res.json({ previewId, ...schedule });
   } catch (err) {
     next(err);

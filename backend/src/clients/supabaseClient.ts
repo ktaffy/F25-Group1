@@ -71,6 +71,54 @@ export async function fetchRecipeById(id: string): Promise<Recipe | null> {
     if (error) throw error;
     return data;
 }
+/**
+ * Get a single recipe by ID from database (minimal data for scheduling)
+ * Same signature as Spoonacular's fetchRecipeById but uses database
+ * @param id - recipe id (text - can be numeric string or UUID)
+ * @returns object with at least { title: string } property
+ */
+export async function fetchRecipeByIdForSchedule(id: string): Promise<{ title: string }> {
+    const { data, error } = await supabase
+        .from('recipes')
+        .select('id, title, instructions')
+        .eq('id', id)
+        .maybeSingle();
+
+    if (error) throw error;
+    if (!data) throw new Error(`Recipe not found: ${id}`);
+
+    return { title: data.title };
+}
+
+/**
+ * Get parsed steps for a recipe from database
+ * Same purpose as Spoonacular's fetchSteps but uses database instructions field
+ * @param id - recipe id (text - can be numeric string or UUID)  
+ * @returns array of instruction objects with steps array
+ */
+export async function fetchStepsFromDb(id: string): Promise<Array<{ steps: Array<{ step: string }> }>> {
+    const { data, error } = await supabase
+        .from('recipes')
+        .select('instructions')
+        .eq('id', id)
+        .maybeSingle();
+
+    if (error) throw error;
+    if (!data) throw new Error(`Recipe not found: ${id}`);
+
+    // Parse the instructions string into steps
+    const instructionsText: string = data.instructions || '';
+    const stepTexts: string[] = instructionsText
+        .split('\n')
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length > 0)
+        .map((s: string) => s.replace(/^\d+\.\s*/, '')); // Remove "1. ", "2. ", etc.
+
+    // Return in same format as Spoonacular's fetchSteps
+    return [{
+        steps: stepTexts.map((step: string) => ({ step }))
+    }];
+}
 
 /**
  * Search recipes by title
