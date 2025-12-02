@@ -216,9 +216,9 @@ export async function searchRecipes(params: SearchQueryParams = {}): Promise<{ t
   }
 
   const data = await fetchSupabaseSearchRecipes(searchTerm, pageSize, {
-    createdBy: createdBy,
-    userId: userId,
-    mealType: mealType,
+    ...(createdBy && { createdBy }),
+    ...(userId && { userId }),
+    ...(mealType && { mealType }),
   });
   const items = data.map(formatRecipe).filter(validateRecipe);
 
