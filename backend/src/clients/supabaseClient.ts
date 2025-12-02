@@ -106,18 +106,79 @@ export async function fetchStepsFromDb(id: string): Promise<Array<{ steps: Array
     if (error) throw error;
     if (!data) throw new Error(`Recipe not found: ${id}`);
 
-    // Parse the instructions string into steps
-    const instructionsText: string = data.instructions || '';
-    const stepTexts: string[] = instructionsText
-        .split('\n')
-        .map((s: string) => s.trim())
-        .filter((s: string) => s.length > 0)
-        .map((s: string) => s.replace(/^\d+\.\s*/, '')); // Remove "1. ", "2. ", etc.
+    const stepTexts = parseInstructionText(data.instructions);
 
-    // Return in same format as Spoonacular's fetchSteps
     return [{
         steps: stepTexts.map((step: string) => ({ step }))
     }];
+}
+
+/**
+ * Robustly parse instructions stored as:
+ * - newline separated text
+ * - "Step X: ..." lines
+ * - HTML lists (<ol><li>...</li></ol>)
+ * - JSON-stringified arrays or objects
+ */
+function parseInstructionText(raw: any): string[] {
+    if (!raw) return [];
+
+    // If the value is a JSON stringified array/object, try to parse it first.
+    if (typeof raw === "string" && /^[\\[{]/.test(raw.trim())) {
+        try {
+            const parsed = JSON.parse(raw);
+            raw = parsed;
+        } catch {
+            // fall through to treat as plain text
+        }
+    }
+
+    if (Array.isArray(raw)) {
+        return raw
+            .map((s: any) => (typeof s === "string" ? s : s?.step))
+            .filter((s: any): s is string => Boolean(s))
+            .map((s: string) => s.trim())
+            .filter(Boolean);
+    }
+
+    const text = String(raw);
+
+    // HTML list items
+    const liMatches = Array.from(text.matchAll(/<li[^>]*>(.*?)<\/li>/gis)).map(m => m[1]);
+    if (liMatches.length > 0) {
+        return liMatches
+            .map(stripHtmlTags)
+            .map(cleanNumbering)
+            .filter(Boolean);
+    }
+
+    // Split on newlines
+    const newlineParts = text
+        .split(/\r?\n/)
+        .map(p => p.trim())
+        .filter(Boolean);
+    if (newlineParts.length > 1) {
+        return newlineParts.map(cleanNumbering);
+    }
+
+    // Split on "Step X" markers
+    const stepParts = text
+        .split(/step\s*\d+[:.)-]?\s*/i)
+        .map(p => p.trim())
+        .filter(Boolean);
+    if (stepParts.length > 1) {
+        return stepParts.map(cleanNumbering);
+    }
+
+    return [cleanNumbering(text)];
+}
+
+function stripHtmlTags(str: string): string {
+    return str.replace(/<\/?[^>]+(>|$)/g, '').trim();
+}
+
+function cleanNumbering(str: string): string {
+    return str.replace(/^\d+\s*[\.\)\-:]\s*/, '').trim();
 }
 
 /**
