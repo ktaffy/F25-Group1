@@ -16,7 +16,7 @@ interface Recipe {
     readyInMinutes: number
     servings?: number
     summary?: string
-    instructions?: string
+    instructions?: string | Array<{ step: string } | string>
     ingredients?: any[]
     dish_types?: string[]
     averageRating?: number
@@ -98,10 +98,25 @@ function MyRecipesPage({ userId, setCurrentPage }: MyRecipesPageProps) {
         const plainSummary = tempDiv.textContent || tempDiv.innerText || ''
         setSummary(plainSummary)
 
-        tempDiv.innerHTML = recipe.instructions || ''
-        const listItems = tempDiv.querySelectorAll('li')
-        const plainInstructions = Array.from(listItems).map(li => li.textContent).join('\n')
-        setInstructions(plainInstructions)
+        // Normalize instructions (can be array, HTML, or plain text)
+        let plainInstructions = ''
+        const rawInstructions: any = recipe.instructions
+
+        if (Array.isArray(rawInstructions)) {
+            plainInstructions = rawInstructions
+                .map((step: any) => (typeof step === 'string' ? step : step?.step || ''))
+                .filter(Boolean)
+                .join('\n')
+        } else if (typeof rawInstructions === 'string') {
+            tempDiv.innerHTML = rawInstructions
+            const listItems = tempDiv.querySelectorAll('li')
+            if (listItems.length > 0) {
+                plainInstructions = Array.from(listItems).map(li => li.textContent || '').join('\n')
+            } else {
+                plainInstructions = tempDiv.textContent || tempDiv.innerText || rawInstructions
+            }
+        }
+        setInstructions(plainInstructions.trim())
 
         if (recipe.ingredients && Array.isArray(recipe.ingredients)) {
             const parsedIngredients = recipe.ingredients.map((ing: any) => ({

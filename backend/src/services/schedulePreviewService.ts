@@ -2,6 +2,9 @@ import { randomUUID } from "crypto";
 import type { ScheduleResult } from "../types/scheduleTypes.js";
 import { createScheduleFromIds } from "./scheduleService.js";
 
+// Bump this to invalidate cached previews when logic changes
+const PREVIEW_VERSION = "v2";
+
 interface SchedulePreview {
   id: string;
   recipeKey: string;
@@ -27,7 +30,7 @@ export async function getOrCreatePreview(recipeIds: string[]): Promise<{ preview
   if (normalized.length === 0) {
     throw new Error("No valid recipe ids provided");
   }
-  const key = normalized.join(",");
+  const key = `${PREVIEW_VERSION}:${normalized.join(",")}`;
 
   const existing = previewsByKey.get(key);
   if (existing) {

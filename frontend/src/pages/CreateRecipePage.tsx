@@ -70,7 +70,7 @@ function CreateRecipePage({ setCurrentPage, userId }: CreateRecipePageProps) {
 
     const uploadImage = async (): Promise<string> => {
         if (!imageFile) {
-            return 'https://via.placeholder.com/312x231'
+            return 'https://dummyimage.com/312x231/edeff1/555/ffffff&text=Recipe+Image'
         }
 
         setUploadingImage(true)

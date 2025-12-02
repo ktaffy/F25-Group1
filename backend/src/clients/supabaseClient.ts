@@ -134,14 +134,21 @@ function parseInstructionText(raw: any): string[] {
     }
 
     if (Array.isArray(raw)) {
-        return raw
+        const texts = raw
             .map((s: any) => (typeof s === "string" ? s : s?.step))
             .filter((s: any): s is string => Boolean(s))
             .map((s: string) => s.trim())
             .filter(Boolean);
+
+        return texts.flatMap(parseInstructionString);
     }
 
     const text = String(raw);
+    return parseInstructionString(text);
+}
+
+function parseInstructionString(text: string): string[] {
+    if (!text) return [];
 
     // HTML list items
     const liMatches = Array.from(text.matchAll(/<li[^>]*>(.*?)<\/li>/gis)).map(m => m[1]);
