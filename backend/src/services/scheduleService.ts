@@ -13,7 +13,6 @@ import { fetchRecipeByIdForSchedule, fetchStepsFromDb } from "../clients/supabas
  */
 export async function createScheduleFromIds(recipeIds: string[]): Promise<ScheduleResult> {
   const recipes: { recipeId: string; recipeName: string; rawSteps: string[] }[] = [];
-  let hasUserRecipe = false;
 
   for (const id of recipeIds) {
     let recipeName = "";
@@ -31,7 +30,6 @@ export async function createScheduleFromIds(recipeIds: string[]): Promise<Schedu
           rawSteps.push(step.step);
         }
       }
-      hasUserRecipe = true;
       handled = true;
     } catch (err) {
       handled = false;
@@ -58,17 +56,12 @@ export async function createScheduleFromIds(recipeIds: string[]): Promise<Schedu
 
     recipes.push({
       recipeId: String(id),
-    recipeName,
-    rawSteps,
-  });
-}
-
-  // If any user recipe is present, avoid OpenAI and build a simple deterministic schedule.
-  if (hasUserRecipe) {
-    return buildSimpleSchedule(recipes);
+      recipeName,
+      rawSteps,
+    });
   }
 
-  // Let OpenAI handle interleaving + timing for Spoonacular-only sets.
+  // Let OpenAI handle interleaving + timing.
   try {
     const schedule = await generateSchedule(recipes);
     if (schedule?.items?.length) {

@@ -151,10 +151,10 @@ function parseInstructionString(text: string): string[] {
     if (!text) return [];
 
     // HTML list items
-    const liMatches = Array.from(text.matchAll(/<li[^>]*>(.*?)<\/li>/gis)).map(m => m[1]);
+    const liMatches = Array.from(text.matchAll(/<li[^>]*>(.*?)<\/li>/gis)).map(m => m[1] ?? "");
     if (liMatches.length > 0) {
         return liMatches
-            .map(stripHtmlTags)
+            .map(li => stripHtmlTags(li || ""))
             .map(cleanNumbering)
             .filter(Boolean);
     }
