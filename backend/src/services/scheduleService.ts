@@ -12,12 +12,12 @@ import { fetchRecipeByIdForSchedule, fetchStepsFromDb } from "../clients/supabas
  * @returns schedule in specified format
  */
 export async function createScheduleFromIds(recipeIds: string[]): Promise<ScheduleResult> {
-  const recipes: { recipeId: string; recipeName: string; rawSteps: string[] }[] = [];
+  const recipes: { recipeId: string; recipeName: string; steps: { text: string; durationSec?: number }[] }[] = [];
   const hasUserRecipe = recipeIds.some(id => !isPureNumeric(id));
 
   for (const id of recipeIds) {
     let recipeName = "";
-    let rawSteps: string[] = [];
+    let steps: { text: string; durationSec?: number }[] = [];
     let handled = false;
 
     // Always try Supabase first (covers user recipes even if IDs are numeric)
@@ -28,7 +28,10 @@ export async function createScheduleFromIds(recipeIds: string[]): Promise<Schedu
       recipeName = recipe.title;
       for (const instr of analyzed) {
         for (const step of instr.steps) {
-          rawSteps.push(step.step);
+          steps.push({
+            text: step.step,
+            durationSec: parseDurationSec(step.step),
+          });
         }
       }
       handled = true;
@@ -45,7 +48,11 @@ export async function createScheduleFromIds(recipeIds: string[]): Promise<Schedu
       recipeName = recipe.title;
       for (const instr of analyzed) {
         for (const step of instr.steps) {
-          rawSteps.push(step.step);
+          const duration = parseDurationSec(step.step) ?? parseSpoonacularLength(step.length);
+          steps.push({
+            text: step.step,
+            durationSec: duration,
+          });
         }
       }
       handled = true;
@@ -58,7 +65,7 @@ export async function createScheduleFromIds(recipeIds: string[]): Promise<Schedu
     recipes.push({
       recipeId: String(id),
       recipeName,
-      rawSteps,
+      steps,
     });
   }
 
@@ -85,20 +92,21 @@ export async function createScheduleFromIds(recipeIds: string[]): Promise<Schedu
   return buildSimpleSchedule(recipes);
 }
 
-function buildSimpleSchedule(recipes: { recipeId: string; recipeName: string; rawSteps: string[] }[]): ScheduleResult {
+function buildSimpleSchedule(recipes: { recipeId: string; recipeName: string; steps: { text: string; durationSec?: number }[] }[]): ScheduleResult {
   const items: ScheduleResult["items"] = [];
   let cursor = 0;
   const defaultStepSec = 60;
 
-  recipes.forEach(({ recipeId, recipeName, rawSteps }) => {
-    rawSteps.forEach((text, idx) => {
+  recipes.forEach(({ recipeId, recipeName, steps }) => {
+    steps.forEach((step, idx) => {
+      const duration = Number.isFinite(step.durationSec) ? Number(step.durationSec) : defaultStepSec;
       const startSec = cursor;
-      const endSec = cursor + defaultStepSec;
+      const endSec = cursor + duration;
       items.push({
         recipeId,
         recipeName,
         stepIndex: idx,
-        text,
+        text: step.text,
         attention: "foreground",
         startSec,
         endSec,
@@ -116,4 +124,46 @@ function buildSimpleSchedule(recipes: { recipeId: string; recipeName: string; ra
 function isPureNumeric(id: string): boolean {
   const trimmed = String(id).trim();
   return /^\d+$/.test(trimmed);
+}
+
+function parseDurationSec(text?: string): number | undefined {
+  if (!text) return undefined;
+  const lower = text.toLowerCase();
+  // match ranges like 18-22 minutes or 5–6 minutes
+  const rangeMatch = lower.match(/(\d+(?:\.\d+)?)\s*(?:-|–|to)\s*(\d+(?:\.\d+)?)\s*(hour|hours|hr|hrs|h|minute|minutes|min|m)\b/);
+  if (rangeMatch) {
+    const upper = parseFloat(rangeMatch[2]);
+    const unit = rangeMatch[3];
+    return unit.startsWith("hour") || unit.startsWith("hr") || unit === "h"
+      ? Math.round(upper * 3600)
+      : Math.round(upper * 60);
+  }
+
+  // single number with unit
+  const singleMatch = lower.match(/(\d+(?:\.\d+)?)\s*(hour|hours|hr|hrs|h|minute|minutes|min|m)\b/);
+  if (singleMatch) {
+    const num = parseFloat(singleMatch[1]);
+    const unit = singleMatch[2];
+    return unit.startsWith("hour") || unit.startsWith("hr") || unit === "h"
+      ? Math.round(num * 3600)
+      : Math.round(num * 60);
+  }
+
+  // inline (~4 min)
+  const approxMatch = lower.match(/~\s*(\d+(?:\.\d+)?)\s*(minute|minutes|min|m)\b/);
+  if (approxMatch) {
+    const num = parseFloat(approxMatch[1]);
+    return Math.round(num * 60);
+  }
+
+  return undefined;
+}
+
+function parseSpoonacularLength(lengthObj: any): number | undefined {
+  if (!lengthObj || typeof lengthObj.number !== "number") return undefined;
+  const num = lengthObj.number;
+  const unit = String(lengthObj.unit || "").toLowerCase();
+  if (unit.startsWith("hour")) return Math.round(num * 3600);
+  if (unit.startsWith("minute") || unit === "min" || unit === "m") return Math.round(num * 60);
+  return undefined;
 }
