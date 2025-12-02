@@ -32,7 +32,12 @@ describe('openaiClient (live integration)', () => {
   });
 
   it('generateSchedule should return a valid schedule object', async () => {
-    const result = await openaiClient.generateSchedule(recipes);
+    const formattedRecipes = recipes.map(r => ({
+      recipeId: r.recipeId,
+      recipeName: r.recipeName,
+      steps: r.rawSteps.map(text => ({ text }))
+    }));
+    const result = await openaiClient.generateSchedule(formattedRecipes);
 
     expect(result).toHaveProperty('items');
     expect(result).toHaveProperty('totalDurationSec');
@@ -54,7 +59,13 @@ describe('openaiClient (live integration)', () => {
     const originalKey = process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_API_KEY;
 
-    await expect(openaiClient.generateSchedule(recipes)).rejects.toThrow(
+    const formattedRecipes = recipes.map(r => ({
+      recipeId: r.recipeId,
+      recipeName: r.recipeName,
+      steps: r.rawSteps.map(text => ({ text }))
+    }));
+
+    await expect(openaiClient.generateSchedule(formattedRecipes)).rejects.toThrow(
       'OPENAI_API_KEY missing'
     );
 

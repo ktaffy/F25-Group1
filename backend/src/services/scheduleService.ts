@@ -28,10 +28,12 @@ export async function createScheduleFromIds(recipeIds: string[]): Promise<Schedu
       recipeName = recipe.title;
       for (const instr of analyzed) {
         for (const step of instr.steps) {
-          steps.push({
-            text: step.step,
-            durationSec: parseDurationSec(step.step),
-          });
+          const duration = parseDurationSec(step.step);
+          steps.push(
+            duration !== undefined
+              ? { text: step.step, durationSec: duration }
+              : { text: step.step }
+          );
         }
       }
       handled = true;
@@ -51,7 +53,7 @@ export async function createScheduleFromIds(recipeIds: string[]): Promise<Schedu
           const duration = parseDurationSec(step.step) ?? parseSpoonacularLength(step.length);
           steps.push({
             text: step.step,
-            durationSec: duration,
+            ...(duration !== undefined && { durationSec: duration }),
           });
         }
       }
@@ -132,8 +134,8 @@ function parseDurationSec(text?: string): number | undefined {
   // match ranges like 18-22 minutes or 5–6 minutes
   const rangeMatch = lower.match(/(\d+(?:\.\d+)?)\s*(?:-|–|to)\s*(\d+(?:\.\d+)?)\s*(hour|hours|hr|hrs|h|minute|minutes|min|m)\b/);
   if (rangeMatch) {
-    const upper = parseFloat(rangeMatch[2]);
-    const unit = rangeMatch[3];
+    const upper = parseFloat(rangeMatch[2]!);
+    const unit = rangeMatch[3]!;
     return unit.startsWith("hour") || unit.startsWith("hr") || unit === "h"
       ? Math.round(upper * 3600)
       : Math.round(upper * 60);
@@ -142,8 +144,8 @@ function parseDurationSec(text?: string): number | undefined {
   // single number with unit
   const singleMatch = lower.match(/(\d+(?:\.\d+)?)\s*(hour|hours|hr|hrs|h|minute|minutes|min|m)\b/);
   if (singleMatch) {
-    const num = parseFloat(singleMatch[1]);
-    const unit = singleMatch[2];
+    const num = parseFloat(singleMatch[1]!);
+    const unit = singleMatch[2]!;
     return unit.startsWith("hour") || unit.startsWith("hr") || unit === "h"
       ? Math.round(num * 3600)
       : Math.round(num * 60);
@@ -152,7 +154,7 @@ function parseDurationSec(text?: string): number | undefined {
   // inline (~4 min)
   const approxMatch = lower.match(/~\s*(\d+(?:\.\d+)?)\s*(minute|minutes|min|m)\b/);
   if (approxMatch) {
-    const num = parseFloat(approxMatch[1]);
+    const num = parseFloat(approxMatch[1]!);
     return Math.round(num * 60);
   }
 
