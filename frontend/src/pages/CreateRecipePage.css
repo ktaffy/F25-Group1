@@ -220,6 +220,143 @@
     transform: translateY(0);
 }
 
+.helper-text {
+    color: #6b7280;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+}
+
+.instruction-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.instruction-row {
+    display: grid;
+    grid-template-columns: auto 1fr 150px auto;
+    gap: 0.75rem;
+    align-items: start;
+    padding: 1rem;
+    background: #fafafa;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.instruction-row:hover {
+    background: white;
+    border-color: #e5e7eb;
+}
+
+.step-number {
+    font-weight: 700;
+    color: #2563eb;
+    padding: 0.5rem 0.75rem;
+    background: #eff6ff;
+    border-radius: 10px;
+    align-self: center;
+}
+
+.instruction-input label,
+.duration-input label {
+    display: block;
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-bottom: 0.35rem;
+}
+
+.instruction-row textarea {
+    width: 100%;
+    padding: 0.75rem 0.875rem;
+    font-size: 0.95rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    resize: vertical;
+    min-height: 80px;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    background: white;
+    color: #111827;
+}
+
+.instruction-row textarea:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+}
+
+.duration-input input {
+    width: 100%;
+    padding: 0.65rem 0.75rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    background: white;
+    color: #111827;
+}
+
+.duration-input input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+}
+
+.remove-step-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    color: #ef4444;
+    border: 2px solid #fee2e2;
+    border-radius: 8px;
+    font-size: 1.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.remove-step-btn:hover {
+    background: #fef2f2;
+    border-color: #fecaca;
+    transform: scale(1.05);
+}
+
+.remove-step-btn:active {
+    transform: scale(0.95);
+}
+
+.add-step-btn {
+    padding: 0.875rem 1.5rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #2563eb;
+    background: #eff6ff;
+    border: 2px dashed #2563eb;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+    margin-top: 0.75rem;
+}
+
+.add-step-btn:hover {
+    background: #dbeafe;
+    border-style: solid;
+    transform: translateY(-1px);
+}
+
+.add-step-btn:active {
+    transform: translateY(0);
+}
+
+.add-step-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
 /* Dish Types */
 .dish-types-grid {
     display: grid;
@@ -420,6 +557,22 @@
     .remove-ingredient-btn {
         width: 100%;
         height: 40px;
+    }
+
+    .instruction-row {
+        grid-template-columns: 1fr;
+    }
+
+    .step-number {
+        justify-self: flex-start;
+    }
+
+    .duration-input {
+        width: 100%;
+    }
+
+    .remove-step-btn {
+        width: 100%;
     }
 
     .dish-types-grid {

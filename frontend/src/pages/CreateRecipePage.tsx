@@ -16,6 +16,11 @@ interface Ingredient {
     original: string
 }
 
+interface InstructionStepInput {
+    text: string
+    duration: number | ''
+}
+
 interface CreateRecipePageProps {
     setCurrentPage: (page: Page) => void
     userId: string
@@ -28,7 +33,9 @@ function CreateRecipePage({ setCurrentPage, userId }: CreateRecipePageProps) {
     const [servings, setServings] = useState<number>(4)
     const [readyInMinutes, setReadyInMinutes] = useState<number>(30)
     const [summary, setSummary] = useState('')
-    const [instructions, setInstructions] = useState('')
+    const [instructionSteps, setInstructionSteps] = useState<InstructionStepInput[]>([
+        { text: '', duration: '' }
+    ])
     const [dishTypes, setDishTypes] = useState<string[]>([])
     const [ingredients, setIngredients] = useState<Ingredient[]>([
         { name: '', amount: 0, unit: '', original: '' }
@@ -105,6 +112,20 @@ function CreateRecipePage({ setCurrentPage, userId }: CreateRecipePageProps) {
         setIngredients(updated)
     }
 
+    const addInstructionStep = () => {
+        setInstructionSteps([...instructionSteps, { text: '', duration: '' }])
+    }
+
+    const removeInstructionStep = (index: number) => {
+        setInstructionSteps(instructionSteps.filter((_, i) => i !== index))
+    }
+
+    const updateInstructionStep = (index: number, field: keyof InstructionStepInput, value: string | number) => {
+        const updated = [...instructionSteps]
+        updated[index] = { ...updated[index], [field]: value }
+        setInstructionSteps(updated)
+    }
+
     const formatSummary = (text: string): string => {
         if (!text.trim()) return ''
 
@@ -138,7 +159,14 @@ function CreateRecipePage({ setCurrentPage, userId }: CreateRecipePageProps) {
             setError('At least one ingredient is required')
             return
         }
-        if (!instructions.trim()) {
+        const formattedSteps = instructionSteps
+            .map(step => ({
+                text: step.text.trim(),
+                duration: step.duration === '' ? '' : Math.max(0, step.duration)
+            }))
+            .filter(step => step.text.length > 0)
+
+        if (formattedSteps.length === 0) {
             setError('Instructions are required')
             return
         }
@@ -147,14 +175,12 @@ function CreateRecipePage({ setCurrentPage, userId }: CreateRecipePageProps) {
         try {
             const imageUrl = await uploadImage()
 
-            const instructionSteps = instructions
-                .split('\n')
-                .map(step => step.trim())
-                .filter(step => step.length > 0)
-
-            const formattedInstructions = instructionSteps.length > 0
-                ? `<ol>${instructionSteps.map(step => `<li>${step}</li>`).join('')}</ol>`
-                : instructions.trim()
+            const instructionsForScheduler = formattedSteps
+                .map((step, idx) => {
+                    const durationText = step.duration ? ` (~${step.duration} min)` : ''
+                    return `Step ${idx + 1}${durationText}: ${step.text}`
+                })
+                .join('\n')
 
             const recipeData = {
                 userId,
@@ -164,7 +190,7 @@ function CreateRecipePage({ setCurrentPage, userId }: CreateRecipePageProps) {
                 ready_in_minutes: readyInMinutes,
                 summary: formatSummary(summary),
                 ingredients: ingredients.filter(ing => ing.name.trim()),
-                instructions: formattedInstructions,
+                instructions: instructionsForScheduler,
                 dish_types: dishTypes
             }
 
@@ -363,15 +389,60 @@ function CreateRecipePage({ setCurrentPage, userId }: CreateRecipePageProps) {
                 {/* Instructions Section */}
                 <div className="form-section">
                     <h2 className="section-title">Instructions *</h2>
-                    <div className="form-group">
-                        <textarea
-                            value={instructions}
-                            onChange={(e) => setInstructions(e.target.value)}
-                            placeholder="Enter instructions, one step per line..."
-                            rows={8}
-                            required
-                        />
+                    <p className="helper-text">
+                        Add one step at a time. Include a short description and the rough minutes to help the scheduler.
+                    </p>
+                    <div className="instruction-list">
+                        {instructionSteps.map((step, index) => (
+                            <div key={index} className="instruction-row">
+                                <div className="step-number">Step {index + 1}</div>
+                                <div className="instruction-input">
+                                    <label>Instruction</label>
+                                    <textarea
+                                        value={step.text}
+                                        onChange={(e) => updateInstructionStep(index, 'text', e.target.value)}
+                                        placeholder="e.g., Sear chicken on medium heat until browned"
+                                        rows={3}
+                                        required={index === 0}
+                                    />
+                                </div>
+                                <div className="duration-input">
+                                    <label htmlFor={`step-duration-${index}`}>Time (min)</label>
+                                    <input
+                                        id={`step-duration-${index}`}
+                                        type="number"
+                                        min="0"
+                                        value={step.duration}
+                                        onChange={(e) =>
+                                            updateInstructionStep(
+                                                index,
+                                                'duration',
+                                                e.target.value === '' ? '' : Number(e.target.value)
+                                            )
+                                        }
+                                        placeholder="e.g., 5"
+                                    />
+                                </div>
+                                {instructionSteps.length > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => removeInstructionStep(index)}
+                                        className="remove-step-btn"
+                                    >
+                                        ×
+                                    </button>
+                                )}
+                            </div>
+                        ))}
                     </div>
+                    <button
+                        type="button"
+                        onClick={addInstructionStep}
+                        className="add-step-btn"
+                        disabled={!instructionSteps.every(step => step.text.trim().length > 0)}
+                    >
+                        + Add Step
+                    </button>
                 </div>
 
                 {/* Dish Types Section */}

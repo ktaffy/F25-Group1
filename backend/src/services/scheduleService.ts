@@ -1,6 +1,6 @@
 import type { ScheduleResult } from "../types/scheduleTypes.js";
 import { generateSchedule } from "../clients/openaiClient.js";
-import { fetchRecipeById, fetchSteps } from "../clients/spoonacularClient.js";
+import { fetchRecipeById as fetchSpoonacularRecipeById, fetchSteps } from "../clients/spoonacularClient.js";
 import { fetchRecipeByIdForSchedule, fetchStepsFromDb } from "../clients/supabaseClient.js";
 
 /**
@@ -15,19 +15,38 @@ export async function createScheduleFromIds(recipeIds: string[]): Promise<Schedu
   const recipes: { recipeId: string; recipeName: string; rawSteps: string[] }[] = [];
 
   for (const id of recipeIds) {
-    const recipe = await fetchRecipeByIdForSchedule(id);
-    const analyzed = await fetchStepsFromDb(id);
+    const isNumeric = Number.isFinite(Number(id));
 
-    const rawSteps: string[] = [];
-    for (const instr of analyzed) {
-      for (const step of instr.steps) {
-        rawSteps.push(step.step);
+    let recipeName = "";
+    let rawSteps: string[] = [];
+
+    if (isNumeric) {
+      const numericId = Number(id);
+      const recipe = await fetchSpoonacularRecipeById(numericId);
+      const analyzed = await fetchSteps(numericId);
+
+      recipeName = recipe.title;
+      for (const instr of analyzed) {
+        for (const step of instr.steps) {
+          rawSteps.push(step.step);
+        }
+      }
+    } else {
+      const recipe = await fetchRecipeByIdForSchedule(id);
+      const analyzed = await fetchStepsFromDb(id);
+
+      recipeName = recipe.title;
+      for (const instr of analyzed) {
+        for (const step of instr.steps) {
+          rawSteps.push(step.step);
+        }
       }
     }
 
+
     recipes.push({
       recipeId: String(id),
-      recipeName: recipe.title,
+      recipeName,
       rawSteps,
     });
   }
