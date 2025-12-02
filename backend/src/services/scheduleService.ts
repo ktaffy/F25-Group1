@@ -13,7 +13,7 @@ import { fetchRecipeByIdForSchedule, fetchStepsFromDb } from "../clients/supabas
  */
 export async function createScheduleFromIds(recipeIds: string[]): Promise<ScheduleResult> {
   const recipes: { recipeId: string; recipeName: string; rawSteps: string[] }[] = [];
-  const hasUserRecipe = recipeIds.some(id => !Number.isFinite(Number(id)));
+  const hasUserRecipe = recipeIds.some(id => !isPureNumeric(id));
 
   for (const id of recipeIds) {
     let recipeName = "";
@@ -37,7 +37,7 @@ export async function createScheduleFromIds(recipeIds: string[]): Promise<Schedu
     }
 
     // Fallback to Spoonacular for numeric IDs if not found in Supabase
-    if (!handled && Number.isFinite(Number(id))) {
+    if (!handled && isPureNumeric(id)) {
       const numericId = Number(id);
       const recipe = await fetchSpoonacularRecipeById(numericId);
       const analyzed = await fetchSteps(numericId);
@@ -111,4 +111,9 @@ function buildSimpleSchedule(recipes: { recipeId: string; recipeName: string; ra
     items,
     totalDurationSec: cursor,
   };
+}
+
+function isPureNumeric(id: string): boolean {
+  const trimmed = String(id).trim();
+  return /^\d+$/.test(trimmed);
 }

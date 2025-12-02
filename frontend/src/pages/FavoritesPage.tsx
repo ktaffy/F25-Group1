@@ -65,7 +65,7 @@ function FavoritesPage({ favorites, setFavorites, cart, setCart, setCurrentPage,
                                 </div>
                                 <div className="favorites-item-details">
                                     <h3 className="favorites-item-title">{recipe.title}</h3>
-                                    <p className="favorites-item-time">⏱️ Ready in: {recipe.readyInMinutes} minutes</p>
+                                    {/* Removed per request: ready time */}
                                 </div>
                                 <div className="favorites-item-actions">
                                     <button

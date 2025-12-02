@@ -564,7 +564,7 @@ function LandingPage({ cart, setCart, favorites, setFavorites, currentUserId }: 
 
                             <div className="preview-details">
                                 <div className="recipe-meta">
-                                    <span className="meta-item">⏱️ {selectedRecipe.readyInMinutes} minutes</span>
+                                    {/* Removed per request: ready time in preview */ }
                                     {selectedRecipe.servings && (
                                         <span className="meta-item">👥 {selectedRecipe.servings} servings</span>
                                     )}
@@ -676,7 +676,7 @@ function LandingPage({ cart, setCart, favorites, setFavorites, currentUserId }: 
 
                                 <div className="card-content">
                                     <h3 className="card-title">{recipe.title}</h3>
-                                    <p className="card-time">⏱️ {recipe.readyInMinutes} minutes</p>
+                                    {/* Removed per request: ready time on cards */}
 
                                     {/* Rating Display */}
                                     <div className="card-rating">

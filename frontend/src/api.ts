@@ -36,9 +36,15 @@ interface Review {
 }
 
 const normalizeRecipe = (recipe: any): Recipe => {
-    const parsedId = typeof recipe.id === 'string' ? parseInt(recipe.id, 10) : recipe.id
+    const idValue = (() => {
+        if (typeof recipe.id === 'number') return recipe.id
+        const maybeNum = Number(recipe.id)
+        // Only coerce if the id is purely numeric
+        return Number.isFinite(maybeNum) && /^\d+$/.test(String(recipe.id)) ? maybeNum : recipe.id
+    })()
+
     return {
-        id: Number.isFinite(parsedId) ? parsedId : 0,
+        id: idValue as any,
         title: recipe.title || '',
         image: recipe.image || '',
         readyInMinutes: recipe.readyInMinutes ?? recipe.ready_in_minutes ?? 0,

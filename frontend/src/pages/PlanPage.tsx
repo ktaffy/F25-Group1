@@ -81,7 +81,7 @@ function PlanPage({ cart, setCart, setCurrentPage, setCookingSchedule }: PlanPag
                                 </div>
                                 <div className="cart-item-details">
                                     <h3 className="cart-item-title">{recipe.title}</h3>
-                                    <p className="cart-item-time">⏱️ Ready in: {recipe.readyInMinutes} minutes</p>
+                                    {/* Removed per request: ready time */}
                                 </div>
                                 <button
                                     onClick={() => removeFromCart(recipe.id)}
