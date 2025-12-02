@@ -13,6 +13,7 @@ import { fetchRecipeByIdForSchedule, fetchStepsFromDb } from "../clients/supabas
  */
 export async function createScheduleFromIds(recipeIds: string[]): Promise<ScheduleResult> {
   const recipes: { recipeId: string; recipeName: string; rawSteps: string[] }[] = [];
+  const hasUserRecipe = recipeIds.some(id => !Number.isFinite(Number(id)));
 
   for (const id of recipeIds) {
     let recipeName = "";
@@ -61,6 +62,10 @@ export async function createScheduleFromIds(recipeIds: string[]): Promise<Schedu
     });
   }
 
+  if (recipes.length === 0) {
+    throw new Error("No recipes resolved for scheduling");
+  }
+
   // Let OpenAI handle interleaving + timing.
   try {
     const schedule = await generateSchedule(recipes);
@@ -68,7 +73,12 @@ export async function createScheduleFromIds(recipeIds: string[]): Promise<Schedu
       return schedule;
     }
   } catch (err) {
-    console.error("OpenAI schedule failed, falling back:", err);
+    console.error("OpenAI schedule failed:", err);
+  }
+
+  // If all recipes were Spoonacular, fail loudly so we don't silently skip AI
+  if (!hasUserRecipe) {
+    throw new Error("OpenAI schedule empty for Spoonacular recipes");
   }
 
   // Fallback: simple linear schedule if AI generation fails or returns empty
