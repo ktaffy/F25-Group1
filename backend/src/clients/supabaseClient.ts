@@ -154,6 +154,7 @@ function parseInstructionString(text: string): string[] {
     const liMatches = Array.from(text.matchAll(/<li[^>]*>(.*?)<\/li>/gis)).map(m => m[1]);
     if (liMatches.length > 0) {
         return liMatches
+            .filter((s): s is string => s !== undefined)  // Filter out undefined BEFORE mapping
             .map(stripHtmlTags)
             .map(cleanNumbering)
             .filter(Boolean);
